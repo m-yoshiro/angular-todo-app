@@ -1,0 +1,199 @@
+# Angular Todo App - Cursor Project Rules
+
+## Project Overview
+This is an Angular 20 TODO application built with modern Angular features including:
+- Stand-alone components (default in v20)
+- Signals for state management
+- Angular Router
+- SSR (Server-Side Rendering) with Incremental Hydration
+- Optional Zoneless change detection
+
+## Development Environment
+- **Node.js**: 20.11.1+ (LTS recommended)
+- **Angular CLI**: v20
+- **Package Manager**: npm
+- **IDE**: VS Code with Angular Language Service
+
+## Project Structure
+```
+src/
+├── app/
+│   ├── components/          # Stand-alone components
+│   ├── services/           # Injectable services
+│   ├── models/             # TypeScript interfaces/types
+│   ├── app.component.ts    # Root component
+│   ├── app.config.ts       # Application configuration
+│   └── app.routes.ts       # Route definitions
+├── assets/                 # Static assets
+└── styles/                 # Global styles (SCSS)
+```
+
+## Coding Standards
+
+### 1. Component Architecture
+- Use **stand-alone components** (no NgModules)
+- Follow Angular naming conventions: `ComponentNameComponent`
+- Use `@Input()` and `@Output()` for component communication
+- Implement `OnDestroy` for cleanup when necessary
+
+### 2. State Management with Signals
+```typescript
+// ✅ Preferred: Use signals for reactive state
+const todos = signal<Todo[]>([]);
+const completedTodos = computed(() =>
+  todos().filter(todo => todo.completed)
+);
+
+// ✅ Use effect() for side effects
+effect(() => {
+  console.log('Todos changed:', todos());
+});
+```
+
+### 3. Dependency Injection
+```typescript
+// ✅ Preferred: Use inject() function
+export class TodoService {
+  private http = inject(HttpClient);
+}
+
+// ✅ Alternative: Constructor injection
+export class TodoComponent {
+  constructor(private todoService: TodoService) {}
+}
+```
+
+### 4. Template Syntax (Angular v20)
+```html
+<!-- ✅ Use new control flow syntax -->
+@for (todo of todos(); track todo.id) {
+  <app-todo-item [todo]="todo" />
+}
+
+@if (todos().length === 0) {
+  <p>No todos found</p>
+}
+
+<!-- ✅ Use signals in templates -->
+<div>{{ completedTodos() }} of {{ todos().length }} completed</div>
+```
+
+### 5. TypeScript Best Practices
+- Use strict type checking
+- Define interfaces for all data models
+- Use `readonly` for immutable data
+- Prefer `const` assertions for static data
+
+### 6. Styling Guidelines
+- Use SCSS for component styles
+- Follow BEM methodology for CSS classes
+- Use Angular's `:host` selector for component-specific styles
+- Implement responsive design with CSS Grid/Flexbox
+
+## Development Workflow
+
+### 1. Feature Development
+1. Create feature branch from `main`
+2. Implement feature following TDD approach
+3. Write unit tests for components and services
+4. Update documentation in `/plans` directory
+5. Create pull request with descriptive title
+
+### 2. Code Quality
+- Run `ng lint` before committing
+- Ensure all tests pass with `ng test`
+- Use Prettier for code formatting
+- Follow ESLint Angular rules
+
+### 3. Testing Strategy
+- **Unit Tests**: Use Web Test Runner (default)
+- **E2E Tests**: Use Playwright
+- **Component Testing**: Test component logic and template bindings
+- **Service Testing**: Mock HTTP requests and test business logic
+
+## File Naming Conventions
+- Components: `kebab-case.component.ts`
+- Services: `kebab-case.service.ts`
+- Models: `kebab-case.model.ts`
+- Templates: `component-name.component.html`
+- Styles: `component-name.component.scss`
+
+## Import Organization
+```typescript
+// 1. Angular imports
+import { Component, inject } from '@angular/core';
+
+// 2. Third-party imports
+import { Observable } from 'rxjs';
+
+// 3. Application imports
+import { TodoService } from '../services/todo.service';
+import { Todo } from '../models/todo.model';
+```
+
+## Performance Guidelines
+- Use `OnPush` change detection strategy when possible
+- Implement `trackBy` functions for `@for` loops
+- Lazy load routes for better initial load time
+- Use `toSignal()` to convert Observables to Signals
+- Optimize bundle size with tree-shaking
+
+## Error Handling
+- Use Angular's error handling mechanisms
+- Implement proper error boundaries
+- Log errors appropriately
+- Provide user-friendly error messages
+
+## Accessibility (A11y)
+- Use semantic HTML elements
+- Implement proper ARIA attributes
+- Ensure keyboard navigation works
+- Test with screen readers
+- Maintain proper color contrast ratios
+
+## Security Guidelines
+- Sanitize user input
+- Use Angular's built-in XSS protection
+- Implement proper authentication/authorization
+- Follow OWASP security guidelines
+
+## Documentation Standards
+- Use JSDoc comments for public APIs
+- Document complex business logic
+- Keep README.md updated
+- Maintain changelog for releases
+
+## Git Commit Guidelines
+Use conventional commits format:
+```
+feat: add todo completion functionality
+fix: resolve signal update issue
+docs: update README with new features
+test: add unit tests for TodoService
+refactor: simplify component logic
+```
+
+## Performance Monitoring
+- Use Angular DevTools for debugging
+- Monitor Core Web Vitals
+- Track bundle size changes
+- Measure hydration performance
+
+## Deployment
+- Build with `ng build` for production
+- Use SSR build for better SEO
+- Deploy to Vercel/Cloudflare Pages
+- Set up CI/CD with GitHub Actions
+
+## Learning Resources
+- [Angular v20 Documentation](https://angular.dev/)
+- [Signals Guide](https://angular.dev/guide/signals)
+- [Stand-alone Components](https://angular.dev/guide/standalone-components)
+- [Template Control Flow](https://angular.dev/guide/template-control-flow)
+
+## Notes for Cursor
+- Always check the `/plans` directory for current development status
+- Follow the existing plan structure and checklist format
+- Update progress in plan files when implementing features
+- Maintain consistency with Angular v20 best practices
+- Prioritize modern Angular patterns over legacy approaches
