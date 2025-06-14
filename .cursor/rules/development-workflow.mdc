@@ -12,6 +12,11 @@ alwaysApply: false
 - Update task tracker in [plans/task-tracker.md](mdc:plans/task-tracker.md) with progress
 
 ## Branch Naming Convention
+**MANDATORY: Create a new branch for every task implementation**
+- Each task implementation requires its own dedicated branch
+- This ensures clean separation of work and easy code review
+- Branches should be created from the latest main/master branch
+
 ```
 feature/XX-description    # For features (XX = PR number)
 fix/XX-description        # For bug fixes
@@ -19,6 +24,11 @@ docs/XX-description       # For documentation
 ```
 
 ## Feature Development Process
+**IMPORTANT: Always create a dedicated branch for each task implementation**
+- Every task must be developed in its own feature branch
+- Never work directly on main/master branch
+- Each task gets a separate branch following the naming convention below
+
 1. Check current status in [plans/task-tracker.md](mdc:plans/task-tracker.md)
 2. Create feature branch: `git checkout -b feature/XX-description`
 3. Implement feature following the roadmap tasks
@@ -54,6 +64,14 @@ docs/XX-description       # For documentation
 - Use Angular's `:host` selector for component-specific styles
 - Implement responsive design with CSS Grid/Flexbox
 - Use CSS custom properties for theming
+
+## Git Workflow Rules
+**CRITICAL: Branch Management for Task Implementation**
+- **ALWAYS** create a new branch before starting any task implementation
+- **NEVER** commit directly to main/master branch
+- **ALWAYS** pull latest changes from main before creating a new branch
+- **ALWAYS** use descriptive branch names that reflect the task being worked on
+- **ALWAYS** create a pull request for code review before merging
 
 ## Git Commit Guidelines
 Use conventional commits format:
