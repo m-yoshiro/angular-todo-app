@@ -1,0 +1,241 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Angular Signals - State Management Patterns
+
+## Core Signal Patterns for TODO App
+
+### 1. Todo State Management
+```typescript
+// Todo state with signals
+const todos = signal<Todo[]>([]);
+const filterType = signal<'all' | 'active' | 'completed'>('all');
+
+// Computed values for derived state
+const filteredTodos = computed(() => {
+  const currentTodos = todos();
+  const currentFilter = filterType();
+
+  switch (currentFilter) {
+    case 'active':
+      return currentTodos.filter(todo => !todo.completed);
+    case 'completed':
+      return currentTodos.filter(todo => todo.completed);
+    default:
+      return currentTodos;
+  }
+});
+
+const todoStats = computed(() => {
+  const currentTodos = todos();
+  return {
+    total: currentTodos.length,
+    completed: currentTodos.filter(t => t.completed).length,
+    remaining: currentTodos.filter(t => !t.completed).length
+  };
+});
+```
+
+### 2. Todo Service with Signals
+```typescript
+@Injectable({ providedIn: 'root' })
+export class TodoService {
+  private todos = signal<Todo[]>([]);
+  private filterType = signal<'all' | 'active' | 'completed'>('all');
+
+  // Public readonly signals
+  readonly todos = this.todos.asReadonly();
+  readonly filterType = this.filterType.asReadonly();
+
+  // Computed values
+  readonly filteredTodos = computed(() => {
+    const currentTodos = this.todos();
+    const currentFilter = this.filterType();
+
+    switch (currentFilter) {
+      case 'active':
+        return currentTodos.filter(todo => !todo.completed);
+      case 'completed':
+        return currentTodos.filter(todo => todo.completed);
+      default:
+        return currentTodos;
+    }
+  });
+
+  readonly stats = computed(() => {
+    const currentTodos = this.todos();
+    return {
+      total: currentTodos.length,
+      completed: currentTodos.filter(t => t.completed).length,
+      remaining: currentTodos.filter(t => !t.completed).length
+    };
+  });
+
+  // Methods to update state
+  addTodo(title: string): void {
+    const newTodo: Todo = {
+      id: this.generateId(),
+      title,
+      completed: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.todos.update(todos => [...todos, newTodo]);
+  }
+
+  toggleTodo(id: string): void {
+    this.todos.update(todos =>
+      todos.map(todo =>
+        todo.id === id
+          ? { ...todo, completed: !todo.completed, updatedAt: new Date() }
+          : todo
+      )
+    );
+  }
+
+  deleteTodo(id: string): void {
+    this.todos.update(todos => todos.filter(todo => todo.id !== id));
+  }
+
+  setFilter(filter: 'all' | 'active' | 'completed'): void {
+    this.filterType.set(filter);
+  }
+
+  private generateId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+}
+```
+
+### 3. Component Usage Patterns
+```typescript
+@Component({
+  selector: 'app-todo-list',
+  standalone: true,
+  template: `
+    <div class="todo-stats">
+      {{ stats().remaining }} of {{ stats().total }} remaining
+    </div>
+
+    @for (todo of filteredTodos(); track todo.id) {
+      <app-todo-item
+        [todo]="todo"
+        (toggle)="todoService.toggleTodo($event)"
+        (delete)="todoService.deleteTodo($event)"
+      />
+    }
+
+    @if (filteredTodos().length === 0) {
+      <p class="empty-state">No todos found</p>
+    }
+  `
+})
+export class TodoListComponent {
+  private todoService = inject(TodoService);
+
+  // Expose signals from service
+  readonly filteredTodos = this.todoService.filteredTodos;
+  readonly stats = this.todoService.stats;
+}
+```
+
+### 4. Form Integration with Signals
+```typescript
+@Component({
+  selector: 'app-add-todo-form',
+  standalone: true,
+  template: `
+    <form (ngSubmit)="addTodo()" #todoForm="ngForm">
+      <input
+        [(ngModel)]="newTodoTitle"
+        name="title"
+        placeholder="What needs to be done?"
+        required
+      />
+      <button type="submit" [disabled]="!newTodoTitle.trim()">
+        Add Todo
+      </button>
+    </form>
+  `
+})
+export class AddTodoFormComponent {
+  private todoService = inject(TodoService);
+  newTodoTitle = '';
+
+  addTodo(): void {
+    if (this.newTodoTitle.trim()) {
+      this.todoService.addTodo(this.newTodoTitle.trim());
+      this.newTodoTitle = '';
+    }
+  }
+}
+```
+
+### 5. Effect Patterns for Side Effects
+```typescript
+// Persist todos to localStorage
+effect(() => {
+  const currentTodos = todos();
+  localStorage.setItem('todos', JSON.stringify(currentTodos));
+});
+
+// Log state changes for debugging
+effect(() => {
+  console.log('Todos updated:', todos());
+  console.log('Stats:', todoStats());
+});
+
+// Sync with external state
+effect(() => {
+  const currentFilter = filterType();
+  // Update URL params or other external state
+  this.router.navigate([], {
+    queryParams: { filter: currentFilter },
+    queryParamsHandling: 'merge'
+  });
+});
+```
+
+### 6. Signal Testing Patterns
+```typescript
+describe('TodoService', () => {
+  let service: TodoService;
+
+  beforeEach(() => {
+    service = new TodoService();
+  });
+
+  it('should add todo and update signals', () => {
+    service.addTodo('Test todo');
+
+    expect(service.todos()).toHaveLength(1);
+    expect(service.todos()[0].title).toBe('Test todo');
+    expect(service.stats().total).toBe(1);
+    expect(service.stats().remaining).toBe(1);
+  });
+
+  it('should filter todos correctly', () => {
+    service.addTodo('Todo 1');
+    service.addTodo('Todo 2');
+    service.toggleTodo(service.todos()[0].id);
+
+    service.setFilter('active');
+    expect(service.filteredTodos()).toHaveLength(1);
+
+    service.setFilter('completed');
+    expect(service.filteredTodos()).toHaveLength(1);
+  });
+});
+```
+
+## Best Practices
+- Use `asReadonly()` to expose signals from services
+- Prefer computed values over manual calculations
+- Use effects sparingly and only for side effects
+- Keep signal updates atomic and predictable
+- Use proper typing for all signals and computed values
+- Test signal interactions thoroughly
+- Monitor signal performance in development

@@ -1,0 +1,111 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Angular 20 Architecture Guidelines
+
+## Component Architecture
+- Use **stand-alone components** (no NgModules) - default in Angular 20
+- Follow Angular naming conventions: `ComponentNameComponent`
+- Use `@Input()` and `@Output()` for component communication
+- Implement `OnDestroy` for cleanup when necessary
+- Use `inject()` function for dependency injection
+
+## State Management with Signals
+```typescript
+// ✅ Preferred: Use signals for reactive state
+const todos = signal<Todo[]>([]);
+const completedTodos = computed(() =>
+  todos().filter(todo => todo.completed)
+);
+
+// ✅ Use effect() for side effects
+effect(() => {
+  console.log('Todos changed:', todos());
+});
+
+// ✅ Use computed() for derived state
+const todoStats = computed(() => ({
+  total: todos().length,
+  completed: todos().filter(t => t.completed).length,
+  remaining: todos().filter(t => !t.completed).length
+}));
+```
+
+## Template Syntax (Angular v20)
+```html
+<!-- ✅ Use new control flow syntax -->
+@for (todo of todos(); track todo.id) {
+  <app-todo-item [todo]="todo" />
+}
+
+@if (todos().length === 0) {
+  <p>No todos found</p>
+}
+
+<!-- ✅ Use signals in templates -->
+<div>{{ todoStats().completed }} of {{ todoStats().total }} completed</div>
+
+<!-- ✅ Use @switch for multiple conditions -->
+@switch (filterType()) {
+  @case ('all') { <span>All todos</span> }
+  @case ('active') { <span>Active todos</span> }
+  @case ('completed') { <span>Completed todos</span> }
+}
+```
+
+## Project Structure
+```
+src/
+├── app/
+│   ├── components/          # Stand-alone components
+│   │   ├── todo-list/       # TodoListComponent
+│   │   ├── todo-item/       # TodoItemComponent
+│   │   ├── add-todo-form/   # AddTodoFormComponent
+│   │   └── todo-filter/     # TodoFilterComponent
+│   ├── services/           # Injectable services
+│   │   ├── todo.service.ts
+│   │   └── storage.service.ts
+│   ├── models/             # TypeScript interfaces/types
+│   │   └── todo.model.ts
+│   ├── app.ts              # Root component
+│   ├── app.config.ts       # Application configuration
+│   └── app.routes.ts       # Route definitions
+├── assets/                 # Static assets
+└── styles/                 # Global styles (SCSS)
+```
+
+## File Naming Conventions
+- Components: `kebab-case.component.ts`
+- Services: `kebab-case.service.ts`
+- Models: `kebab-case.model.ts`
+- Templates: `component-name.component.html`
+- Styles: `component-name.component.scss`
+
+## Import Organization
+```typescript
+// 1. Angular imports
+import { Component, inject, signal, computed } from '@angular/core';
+
+// 2. Third-party imports
+import { Observable } from 'rxjs';
+
+// 3. Application imports
+import { TodoService } from '../services/todo.service';
+import { Todo } from '../models/todo.model';
+```
+
+## Performance Guidelines
+- Use `OnPush` change detection strategy when possible
+- Implement `trackBy` functions for `@for` loops
+- Optimize signal computations to avoid unnecessary recalculations
+- Use `toSignal()` to convert Observables to Signals
+- Optimize bundle size with tree-shaking
+- Monitor hydration performance with incremental hydration
+
+## Key Configuration Files
+- [src/app/app.config.ts](mdc:src/app/app.config.ts) - Application configuration with zoneless setup
+- [src/app/app.routes.ts](mdc:src/app/app.routes.ts) - Route definitions
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript configuration
+- [angular.json](mdc:angular.json) - Angular CLI configuration

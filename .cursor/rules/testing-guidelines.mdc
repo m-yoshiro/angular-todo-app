@@ -1,0 +1,374 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Testing Guidelines for Angular 20 TODO App
+
+## Testing Strategy Overview
+- **Unit Tests**: Use Web Test Runner (default Angular testing framework)
+- **E2E Tests**: Use Playwright (Phase 5)
+- **Component Testing**: Test component logic and template bindings
+- **Service Testing**: Mock dependencies and test business logic
+- **Signal Testing**: Test signal interactions and side effects
+
+## Component Testing Patterns
+
+### 1. Standalone Component Testing
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TodoListComponent } from './todo-list.component';
+import { TodoService } from '../services/todo.service';
+import { Todo } from '../models/todo.model';
+
+describe('TodoListComponent', () => {
+  let component: TodoListComponent;
+  let fixture: ComponentFixture<TodoListComponent>;
+  let todoService: jasmine.SpyObj<TodoService>;
+
+  beforeEach(async () => {
+    const spy = jasmine.createSpyObj('TodoService', ['addTodo', 'toggleTodo', 'deleteTodo'], {
+      todos: signal([]),
+      filteredTodos: computed(() => []),
+      stats: computed(() => ({ total: 0, completed: 0, remaining: 0 }))
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [TodoListComponent],
+      providers: [
+        { provide: TodoService, useValue: spy }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(TodoListComponent);
+    component = fixture.componentInstance;
+    todoService = TestBed.inject(TodoService) as jasmine.SpyObj<TodoService>;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should display empty state when no todos', () => {
+    fixture.detectChanges();
+    const emptyState = fixture.nativeElement.querySelector('.empty-state');
+    expect(emptyState).toBeTruthy();
+  });
+
+  it('should call service methods on user actions', () => {
+    const testTodo: Todo = {
+      id: '1',
+      title: 'Test todo',
+      completed: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Mock service signals
+    (todoService.todos as any) = signal([testTodo]);
+    (todoService.filteredTodos as any) = computed(() => [testTodo]);
+    (todoService.stats as any) = computed(() => ({ total: 1, completed: 0, remaining: 1 }));
+
+    fixture.detectChanges();
+
+    // Test toggle action
+    const toggleButton = fixture.nativeElement.querySelector('.toggle-btn');
+    toggleButton.click();
+    expect(todoService.toggleTodo).toHaveBeenCalledWith('1');
+
+    // Test delete action
+    const deleteButton = fixture.nativeElement.querySelector('.delete-btn');
+    deleteButton.click();
+    expect(todoService.deleteTodo).toHaveBeenCalledWith('1');
+  });
+});
+```
+
+### 2. Service Testing with Signals
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { TodoService } from './todo.service';
+import { Todo } from '../models/todo.model';
+
+describe('TodoService', () => {
+  let service: TodoService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(TodoService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+
+  it('should add todo and update signals', () => {
+    service.addTodo('Test todo');
+
+    expect(service.todos()).toHaveLength(1);
+    expect(service.todos()[0].title).toBe('Test todo');
+    expect(service.todos()[0].completed).toBe(false);
+    expect(service.stats().total).toBe(1);
+    expect(service.stats().remaining).toBe(1);
+    expect(service.stats().completed).toBe(0);
+  });
+
+  it('should toggle todo completion status', () => {
+    service.addTodo('Test todo');
+    const todoId = service.todos()[0].id;
+
+    service.toggleTodo(todoId);
+
+    expect(service.todos()[0].completed).toBe(true);
+    expect(service.stats().completed).toBe(1);
+    expect(service.stats().remaining).toBe(0);
+  });
+
+  it('should filter todos correctly', () => {
+    service.addTodo('Todo 1');
+    service.addTodo('Todo 2');
+    service.toggleTodo(service.todos()[0].id); // Complete first todo
+
+    // Test all filter
+    service.setFilter('all');
+    expect(service.filteredTodos()).toHaveLength(2);
+
+    // Test active filter
+    service.setFilter('active');
+    expect(service.filteredTodos()).toHaveLength(1);
+    expect(service.filteredTodos()[0].title).toBe('Todo 2');
+
+    // Test completed filter
+    service.setFilter('completed');
+    expect(service.filteredTodos()).toHaveLength(1);
+    expect(service.filteredTodos()[0].title).toBe('Todo 1');
+  });
+
+  it('should delete todo', () => {
+    service.addTodo('Test todo');
+    const todoId = service.todos()[0].id;
+
+    service.deleteTodo(todoId);
+
+    expect(service.todos()).toHaveLength(0);
+    expect(service.stats().total).toBe(0);
+  });
+});
+```
+
+### 3. Form Component Testing
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormsModule } from '@angular/forms';
+import { AddTodoFormComponent } from './add-todo-form.component';
+import { TodoService } from '../services/todo.service';
+
+describe('AddTodoFormComponent', () => {
+  let component: AddTodoFormComponent;
+  let fixture: ComponentFixture<AddTodoFormComponent>;
+  let todoService: jasmine.SpyObj<TodoService>;
+
+  beforeEach(async () => {
+    const spy = jasmine.createSpyObj('TodoService', ['addTodo']);
+
+    await TestBed.configureTestingModule({
+      imports: [AddTodoFormComponent, FormsModule],
+      providers: [
+        { provide: TodoService, useValue: spy }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AddTodoFormComponent);
+    component = fixture.componentInstance;
+    todoService = TestBed.inject(TodoService) as jasmine.SpyObj<TodoService>;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should add todo when form is submitted', () => {
+    component.newTodoTitle = 'New todo';
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form');
+    form.dispatchEvent(new Event('submit'));
+
+    expect(todoService.addTodo).toHaveBeenCalledWith('New todo');
+    expect(component.newTodoTitle).toBe('');
+  });
+
+  it('should not add empty todo', () => {
+    component.newTodoTitle = '   ';
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form');
+    form.dispatchEvent(new Event('submit'));
+
+    expect(todoService.addTodo).not.toHaveBeenCalled();
+  });
+
+  it('should disable submit button for empty input', () => {
+    component.newTodoTitle = '';
+    fixture.detectChanges();
+
+    const submitButton = fixture.nativeElement.querySelector('button[type="submit"]');
+    expect(submitButton.disabled).toBe(true);
+  });
+});
+```
+
+### 4. Signal Effect Testing
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { TodoService } from './todo.service';
+
+describe('TodoService Effects', () => {
+  let service: TodoService;
+  let localStorageSpy: jasmine.Spy;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(TodoService);
+
+    // Spy on localStorage
+    localStorageSpy = spyOn(localStorage, 'setItem');
+  });
+
+  it('should persist todos to localStorage', () => {
+    service.addTodo('Test todo');
+
+    expect(localStorageSpy).toHaveBeenCalledWith(
+      'todos',
+      jasmine.stringContaining('Test todo')
+    );
+  });
+
+  it('should handle localStorage errors gracefully', () => {
+    localStorageSpy.and.throwError('Storage quota exceeded');
+
+    expect(() => {
+      service.addTodo('Test todo');
+    }).not.toThrow();
+  });
+});
+```
+
+## Testing Configuration
+
+### 1. Test Setup Files
+```typescript
+// src/test-setup.ts
+import 'zone.js/testing';
+import { getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
+
+getTestBed().initTestEnvironment(
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting(),
+);
+```
+
+### 2. Karma Configuration
+```javascript
+// karma.conf.js
+module.exports = function (config) {
+  config.set({
+    basePath: '',
+    frameworks: ['jasmine', '@angular-devkit/build-angular'],
+    plugins: [
+      require('karma-jasmine'),
+      require('karma-chrome-launcher'),
+      require('karma-jasmine-html-reporter'),
+      require('karma-coverage'),
+      require('@angular-devkit/build-angular/plugins/karma')
+    ],
+    client: {
+      clearContext: false
+    },
+    coverageReporter: {
+      dir: require('path').join(__dirname, './coverage'),
+      subdir: '.',
+      reporters: [
+        { type: 'html' },
+        { type: 'text-summary' }
+      ]
+    },
+    reporters: ['progress', 'kjhtml'],
+    port: 9876,
+    colors: true,
+    logLevel: config.LOG_INFO,
+    autoWatch: true,
+    browsers: ['Chrome'],
+    singleRun: false,
+    restartOnFileChange: true
+  });
+};
+```
+
+## E2E Testing with Playwright (Phase 5)
+```typescript
+// e2e/todo-app.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Todo App', () => {
+  test('should add new todo', async ({ page }) => {
+    await page.goto('/');
+
+    await page.fill('input[placeholder="What needs to be done?"]', 'New todo');
+    await page.click('button[type="submit"]');
+
+    await expect(page.locator('.todo-item')).toHaveCount(1);
+    await expect(page.locator('.todo-item')).toContainText('New todo');
+  });
+
+  test('should toggle todo completion', async ({ page }) => {
+    await page.goto('/');
+
+    // Add todo first
+    await page.fill('input[placeholder="What needs to be done?"]', 'Test todo');
+    await page.click('button[type="submit"]');
+
+    // Toggle completion
+    await page.click('.toggle-btn');
+
+    await expect(page.locator('.todo-item.completed')).toHaveCount(1);
+  });
+
+  test('should filter todos', async ({ page }) => {
+    await page.goto('/');
+
+    // Add multiple todos
+    await page.fill('input[placeholder="What needs to be done?"]', 'Todo 1');
+    await page.click('button[type="submit"]');
+
+    await page.fill('input[placeholder="What needs to be done?"]', 'Todo 2');
+    await page.click('button[type="submit"]');
+
+    // Complete first todo
+    await page.click('.todo-item:first-child .toggle-btn');
+
+    // Test filters
+    await page.click('button[data-filter="active"]');
+    await expect(page.locator('.todo-item')).toHaveCount(1);
+
+    await page.click('button[data-filter="completed"]');
+    await expect(page.locator('.todo-item')).toHaveCount(1);
+  });
+});
+```
+
+## Testing Best Practices
+- Test signal interactions thoroughly
+- Mock external dependencies
+- Test error scenarios and edge cases
+- Use descriptive test names
+- Maintain 90%+ code coverage
+- Test accessibility features
+- Test performance-critical paths
+- Use fixtures for test data
+- Test both success and failure paths
+- Mock localStorage and other browser APIs

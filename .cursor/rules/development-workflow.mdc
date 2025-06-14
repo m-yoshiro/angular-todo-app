@@ -1,0 +1,106 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Development Workflow & Standards
+
+## PR-Based Development Process
+- Each feature is developed in a separate PR
+- PRs are small and focused (2-5 hours of work)
+- Follow the detailed roadmap in [plans/detailed-roadmap.md](mdc:plans/detailed-roadmap.md)
+- Update task tracker in [plans/task-tracker.md](mdc:plans/task-tracker.md) with progress
+
+## Branch Naming Convention
+```
+feature/XX-description    # For features (XX = PR number)
+fix/XX-description        # For bug fixes
+docs/XX-description       # For documentation
+```
+
+## Feature Development Process
+1. Check current status in [plans/task-tracker.md](mdc:plans/task-tracker.md)
+2. Create feature branch: `git checkout -b feature/XX-description`
+3. Implement feature following the roadmap tasks
+4. Write unit tests for all new code
+5. Update task tracker with progress
+6. Create pull request with descriptive title
+7. Follow PR template and review checklist
+
+## Code Quality Standards
+- Run `ng lint` before committing
+- Ensure all tests pass with `ng test`
+- Use Prettier for code formatting
+- Follow ESLint Angular rules
+- Achieve 90%+ code coverage
+
+## Testing Strategy
+- **Unit Tests**: Use Web Test Runner (default)
+- **E2E Tests**: Use Playwright (Phase 5)
+- **Component Testing**: Test component logic and template bindings
+- **Service Testing**: Mock dependencies and test business logic
+- **Signal Testing**: Test signal interactions and side effects
+
+## TypeScript Best Practices
+- Use strict type checking
+- Define interfaces for all data models
+- Use `readonly` for immutable data
+- Prefer `const` assertions for static data
+- Use proper typing for signals and computed values
+
+## Styling Guidelines
+- Use SCSS for component styles
+- Follow BEM methodology for CSS classes
+- Use Angular's `:host` selector for component-specific styles
+- Implement responsive design with CSS Grid/Flexbox
+- Use CSS custom properties for theming
+
+## Git Commit Guidelines
+Use conventional commits format:
+```
+feat: add todo filtering functionality
+fix: resolve signal update issue in todo service
+docs: update README with setup instructions
+test: add unit tests for TodoItemComponent
+refactor: simplify component logic using signals
+perf: optimize signal computations for better performance
+```
+
+## Error Handling
+- Use Angular's error handling mechanisms
+- Implement proper error boundaries
+- Log errors appropriately
+- Provide user-friendly error messages
+- Handle localStorage errors gracefully
+
+## Accessibility (A11y) Requirements
+- Use semantic HTML elements
+- Implement proper ARIA attributes
+- Ensure keyboard navigation works
+- Test with screen readers
+- Maintain proper color contrast ratios
+- Add focus management
+- Ensure WCAG 2.1 AA compliance
+
+## Security Guidelines
+- Sanitize user input
+- Use Angular's built-in XSS protection
+- Implement proper authentication/authorization
+- Follow OWASP security guidelines
+- Handle localStorage security considerations
+
+## Documentation Standards
+- Use JSDoc comments for public APIs
+- Document complex business logic
+- Keep [README.md](mdc:README.md) updated
+- Maintain changelog for releases
+- Document experimental features (signal forms)
+- Update roadmap progress regularly
+
+## Performance Monitoring
+- Use Angular DevTools for debugging
+- Monitor Core Web Vitals
+- Track bundle size changes
+- Measure hydration performance
+- Use Lighthouse for performance audits
+- Monitor signal performance

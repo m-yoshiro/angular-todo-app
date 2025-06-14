@@ -1,0 +1,78 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Current Development Tasks
+
+## Immediate Next Steps - PR #1: Setup Project Structure & Models
+
+### Tasks to Complete:
+1. **Create Directory Structure**
+   - Create `src/app/models/` directory
+   - Create `src/app/services/` directory
+   - Create `src/app/components/` directory
+
+2. **Create Todo Model**
+   - Create `src/app/models/todo.model.ts`
+   - Define `Todo` interface with properties:
+     - `id: string` (unique identifier)
+     - `title: string` (todo title)
+     - `completed: boolean` (completion status)
+     - `createdAt: Date` (creation timestamp)
+     - `updatedAt: Date` (last update timestamp)
+
+3. **Update TypeScript Configuration**
+   - Update [tsconfig.json](mdc:tsconfig.json) with `typeCheckHostBindings: true`
+   - Ensure strict type checking is enabled
+
+4. **Add Basic SCSS Variables**
+   - Create `src/styles/_variables.scss` for theming
+   - Define color palette, typography, and spacing variables
+   - Import in [src/styles.scss](mdc:src/styles.scss)
+
+### Files to Create/Modify:
+- `src/app/models/todo.model.ts` (new)
+- `src/app/services/` (directory)
+- `src/app/components/` (directory)
+- `src/styles/_variables.scss` (new)
+- [tsconfig.json](mdc:tsconfig.json) (modify)
+- [src/styles.scss](mdc:src/styles.scss) (modify)
+
+## Phase 1 Goals (Week 1)
+- ✅ PR #1: Setup Project Structure & Models
+- 🔄 PR #2: Basic Todo Service (Memory-based)
+- 🔄 PR #3: Todo List Component (Basic)
+
+## Development Environment Setup
+- **Node.js**: 20.11.1+ (LTS recommended)
+- **Angular CLI**: v20
+- **Package Manager**: npm
+- **IDE**: VS Code with Angular Language Service
+
+## Key Files to Reference
+- [plans/detailed-roadmap.md](mdc:plans/detailed-roadmap.md) - Complete development roadmap
+- [plans/task-tracker.md](mdc:plans/task-tracker.md) - Current progress tracking
+- [src/app/app.config.ts](mdc:src/app/app.config.ts) - Application configuration
+- [package.json](mdc:package.json) - Dependencies and scripts
+
+## Learning Focus Areas
+- Modern Angular patterns vs traditional approaches
+- Signals for state management
+- Zoneless change detection benefits
+- SSR and incremental hydration strategies
+- Performance optimization techniques
+- Testing strategies for Angular applications
+
+## Notes for Development
+- **ALWAYS** check the [plans](mdc:plans) directory for current development status
+- Follow the detailed roadmap in [plans/detailed-roadmap.md](mdc:plans/detailed-roadmap.md)
+- Update progress in [plans/task-tracker.md](mdc:plans/task-tracker.md) when implementing features
+- Maintain consistency with Angular v20 best practices
+- Prioritize modern Angular patterns over legacy approaches
+- Focus on one PR at a time following the roadmap
+- Ensure each PR is small and focused (2-5 hours of work)
+- Write comprehensive tests for all new functionality
+- Document experimental features clearly
+- Consider performance impact of all changes
+- Maintain accessibility standards throughout development
