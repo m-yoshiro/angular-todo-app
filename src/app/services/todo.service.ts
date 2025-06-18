@@ -14,7 +14,12 @@ export class TodoService {
     const completed = todos.filter(todo => todo.completed);
     const pending = todos.filter(todo => !todo.completed);
     const now = new Date();
-    const overdue = pending.filter(todo => todo.dueDate && todo.dueDate < now);
+    const overdue = pending.filter(todo => {
+      if (!todo.dueDate) return false;
+      const dueDateEndOfDay = new Date(todo.dueDate);
+      dueDateEndOfDay.setHours(23, 59, 59, 999);
+      return dueDateEndOfDay < now;
+    });
     
     return {
       total: todos.length,
@@ -66,7 +71,9 @@ export class TodoService {
   }
 
   toggleTodo(id: string): Todo | null {
-    return this.updateTodo(id, { completed: !this.getTodoById(id)?.completed });
+    const todo = this.getTodoById(id);
+    if (!todo) return null;
+    return this.updateTodo(id, { completed: !todo.completed });
   }
 
   deleteTodo(id: string): boolean {
@@ -84,6 +91,6 @@ export class TodoService {
   }
 
   private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
 }
