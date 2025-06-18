@@ -15,7 +15,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Tests use Jasmine framework with Angular Testing Utilities
 
 **Code Quality:**
-- No linting setup configured yet (will be added in Phase 5)
+- `ng lint` - Run ESLint for TypeScript and HTML files
+- ESLint configured with Angular and TypeScript rules
+- Uses angular-eslint, @typescript-eslint packages
 
 ## Project Architecture
 
@@ -80,6 +82,7 @@ src/app/
 
 ### Current Development Status
 - ✅ Phase 1 completed: Project structure, models, basic setup
+- ✅ ESLint setup completed: Code quality tools configured
 - 🔄 Ready for Phase 2: Core functionality (TodoService, components)
 
 ### Testing Strategy
@@ -112,7 +115,8 @@ interface Todo {
 ## Important Files to Reference
 - `plans/detailed-roadmap.md` - Complete 6-week development plan with PRs
 - `src/app/models/todo.model.ts` - Core data interfaces
-- `angular.json` - Angular CLI configuration (SCSS, SSR setup)
+- `angular.json` - Angular CLI configuration (SCSS, SSR, lint setup)
+- `eslint.config.js` - ESLint configuration for TypeScript and Angular
 - `.cursor/rules/` - Development guidelines and architectural patterns
 
 ## Current Phase Focus
