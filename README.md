@@ -1,5 +1,7 @@
 # AngularTodoApp
 
+> **Note:** This is a learning project to explore Angular 20 features and modern development patterns. It's not intended for production use.
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.2.
 
 ## Development server
