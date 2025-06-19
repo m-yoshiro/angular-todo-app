@@ -48,7 +48,7 @@
           </span>
         }
         
-        @if (todo().tags && todo().tags.length > 0) {
+        @if (todo().tags?.length) {
           <div class="todo-tags">
             @for (tag of todo().tags; track tag) {
               <span class="tag">{{ tag }}</span>
