@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed } from '@angular/core';
+import { Component, input, output, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Todo } from '../../models/todo.model';
@@ -21,10 +21,12 @@ export class TodoItemComponent {
   editTitle = signal('');
   editDescription = signal('');
 
+  @ViewChild('titleInput') titleInput?: ElementRef<HTMLInputElement>;
+
   isOverdue = computed(() => {
     const todo = this.todo();
     if (!todo.dueDate || todo.completed) return false;
-    return new Date(todo.dueDate) < new Date();
+    return new Date(todo.dueDate).getTime() < Date.now();
   });
 
   priorityClass = computed(() => {
@@ -46,6 +48,11 @@ export class TodoItemComponent {
     this.editTitle.set(this.todo().title);
     this.editDescription.set(this.todo().description || '');
     this.isEditing.set(true);
+    
+    // Focus the title input after the view updates
+    setTimeout(() => {
+      this.titleInput?.nativeElement.focus();
+    });
   }
 
   onSave(): void {
