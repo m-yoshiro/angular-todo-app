@@ -10,9 +10,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `ng build --watch --configuration development` - Build in watch mode
 
 **Testing:**
-- `ng test` - Run unit tests with Karma
+- `ng test` - Run unit tests with Vitest
 - `ng test --code-coverage` - Run tests with coverage report
-- Tests use Jasmine framework with Angular Testing Utilities
+- Tests use Vitest framework with Angular Testing Utilities
+- Supports Jasmine-compatible syntax for smooth migration
 
 **Code Quality:**
 - `ng lint` - Run ESLint for TypeScript and HTML files
@@ -86,10 +87,11 @@ src/app/
 - 🔄 Ready for Phase 2: Core functionality (TodoService, components)
 
 ### Testing Strategy
-- **Unit Tests**: Use default Angular testing with Jasmine/Karma
+- **Unit Tests**: Use Angular testing with Vitest (migrated from Karma)
 - **Signal Testing**: Test signal interactions and computed values
 - **Component Testing**: Mock services, test template bindings
-- **Coverage Target**: 90%+
+- **Vitest Features**: Faster execution, native ESM support, better watch mode
+- **Coverage Target**: 90%+ (currently achieving 100% statements, 95%+ branches)
 
 ### Styling
 - Uses **SCSS** for all styling (configured in angular.json)
