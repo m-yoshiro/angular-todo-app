@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { ComponentRef } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { vi, expect } from 'vitest';
 import { TodoItemComponent } from './todo-item.component';
 import { Todo } from '../../models/todo.model';
 
@@ -64,7 +65,7 @@ describe('TodoItemComponent', () => {
 
     it('should emit toggleComplete event when checkbox is clicked', () => {
       componentRef.setInput('todo', mockTodo);
-      spyOn(component.toggleComplete, 'emit');
+      vi.spyOn(component.toggleComplete, 'emit');
       fixture.detectChanges();
 
       const checkbox = fixture.nativeElement.querySelector('.todo-checkbox');
@@ -75,7 +76,7 @@ describe('TodoItemComponent', () => {
 
     it('should emit deleteTodo event when delete button is clicked', () => {
       componentRef.setInput('todo', mockTodo);
-      spyOn(component.deleteTodo, 'emit');
+      vi.spyOn(component.deleteTodo, 'emit');
       fixture.detectChanges();
 
       const deleteButton = fixture.nativeElement.querySelector('.btn-delete');
@@ -115,7 +116,7 @@ describe('TodoItemComponent', () => {
     });
 
     it('should emit editTodo event when save button is clicked', () => {
-      spyOn(component.editTodo, 'emit');
+      vi.spyOn(component.editTodo, 'emit');
       component.onEdit();
       component.editTitle.set('Updated Title');
       component.editDescription.set('Updated Description');
@@ -128,7 +129,7 @@ describe('TodoItemComponent', () => {
         ...mockTodo,
         title: 'Updated Title',
         description: 'Updated Description',
-        updatedAt: jasmine.any(Date)
+        updatedAt: expect.any(Date)
       });
       expect(component.isEditing()).toBe(false);
     });

@@ -61,7 +61,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run unit tests with coverage
-        run: npm run test -- --watch=false --browsers=ChromeHeadless --code-coverage
+        run: npm run test -- --code-coverage
 
   build:
     runs-on: ubuntu-latest
