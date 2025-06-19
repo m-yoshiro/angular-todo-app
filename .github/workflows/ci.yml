@@ -34,7 +34,7 @@ jobs:
       - name: Run ESLint
         run: npm run lint
       - name: TypeScript compilation check
-        run: ng build --configuration development
+        run: npx ng build --configuration development
 
   test:
     runs-on: ubuntu-latest
