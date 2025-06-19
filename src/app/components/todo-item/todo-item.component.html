@@ -1,0 +1,102 @@
+<div class="todo-item" [class.completed]="todo().completed" [class.editing]="isEditing()" [class]="priorityClass()" [class.overdue]="isOverdue()">
+  @if (!isEditing()) {
+    <div class="todo-content">
+      <div class="todo-header">
+        <input 
+          type="checkbox" 
+          [checked]="todo().completed" 
+          (change)="onToggleComplete()"
+          class="todo-checkbox"
+          [id]="'todo-' + todo().id"
+        >
+        <label [for]="'todo-' + todo().id" class="todo-title">
+          {{ todo().title }}
+        </label>
+        <div class="todo-actions">
+          <button 
+            class="btn btn-edit" 
+            (click)="onEdit()"
+            [disabled]="todo().completed"
+            aria-label="Edit todo"
+          >
+            ✏️
+          </button>
+          <button 
+            class="btn btn-delete" 
+            (click)="onDelete()"
+            aria-label="Delete todo"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      @if (todo().description) {
+        <div class="todo-description">
+          {{ todo().description }}
+        </div>
+      }
+
+      <div class="todo-meta">
+        <span class="todo-priority" [class]="'priority-' + todo().priority">
+          {{ todo().priority.toUpperCase() }}
+        </span>
+        
+        @if (todo().dueDate) {
+          <span class="todo-due-date" [class.overdue]="isOverdue()">
+            📅 {{ dueDateFormatted() }}
+          </span>
+        }
+        
+        @if (todo().tags?.length) {
+          <div class="todo-tags">
+            @for (tag of todo().tags; track tag) {
+              <span class="tag">{{ tag }}</span>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="todo-edit-form">
+      <div class="form-group">
+        <label for="edit-title">Title</label>
+        <input 
+          type="text" 
+          id="edit-title"
+          #titleInput
+          [(ngModel)]="editTitle"
+          class="form-control"
+          placeholder="Enter todo title"
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="edit-description">Description</label>
+        <textarea 
+          id="edit-description"
+          [(ngModel)]="editDescription"
+          class="form-control"
+          placeholder="Enter todo description"
+          rows="3"
+        ></textarea>
+      </div>
+      
+      <div class="form-actions">
+        <button 
+          class="btn btn-save" 
+          (click)="onSave()"
+          [disabled]="!editTitle().trim()"
+        >
+          Save
+        </button>
+        <button 
+          class="btn btn-cancel" 
+          (click)="onCancel()"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  }
+</div>
