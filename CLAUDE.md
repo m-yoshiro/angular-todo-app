@@ -109,9 +109,11 @@ src/app/
 
 ### Styling
 - Uses **SCSS** for all styling (configured in angular.json)
+- **Tailwind CSS** integrated for utility-first styling
 - Component styles: `component-name.component.scss`
 - Global styles: `src/styles.scss`
 - SCSS variables: `src/styles/variables.scss`
+- PostCSS configuration: `.postcssrc.json`
 
 ## Todo Model Structure
 ```typescript
