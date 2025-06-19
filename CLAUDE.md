@@ -12,11 +12,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build:prod` - Build for production (explicit)
 - `npm run watch` - Build in watch mode
 
-**Testing:**
+**Testing (TDD-Focused):**
+- `npm run test:watch` - **PRIMARY**: Run tests in watch mode for TDD cycles
 - `npm test` - Run unit tests with Vitest
 - `npm run test:coverage` - Run tests with coverage report
-- `npm run test:watch` - Run tests in watch mode
 - Tests use Vitest framework with Angular Testing Utilities
+- **TDD Workflow**: Keep `test:watch` running during development
 
 **Code Quality:**
 - `npm run lint` - Run ESLint for TypeScript and HTML files
@@ -89,23 +90,70 @@ src/app/
 
 ## Development Process
 
+### TDD Development Workflow (MANDATORY)
+- **Test-Driven Development**: All new features MUST follow TDD methodology
+- **TDD Cycle**: Red (failing test) → Green (minimal code) → Refactor → Repeat
+- **Before Writing Code**: Always write the test first using `npm run test:watch`
+- **Component Development**: Test component behavior, inputs, outputs before implementation
+- **Service Development**: Test service methods, signal updates, side effects before coding
+
 ### Branch Workflow (MANDATORY)
 - **ALWAYS create a new branch** for each task implementation
 - **NEVER commit directly to main** branch
 - Branch naming: `feature/XX-description` (XX = PR number from roadmap)
 - Follow the detailed roadmap in `plans/detailed-roadmap.md`
+- **TDD Commits**: Include both test and implementation in each commit
 
 ### Current Development Status
 - ✅ Phase 1 completed: Project structure, models, basic setup
 - ✅ ESLint setup completed: Code quality tools configured
-- 🔄 Ready for Phase 2: Core functionality (TodoService, components)
+- 🔄 Ready for Phase 2: Core functionality (TodoService, components) using **TDD approach**
+- 🎯 **TDD Focus**: All Phase 2 development follows test-first methodology
 
 ### Testing Strategy
+
+#### TDD (Test-Driven Development) Methodology
+- **MANDATORY**: Follow Red-Green-Refactor cycle for all new features
+  - 🔴 **Red**: Write failing test first
+  - 🟢 **Green**: Write minimal code to make test pass
+  - 🔵 **Refactor**: Improve code while keeping tests green
+- **Test-First Development**: Always write tests before implementation
+- **TDD Workflow**: `npm run test:watch` → write test → write code → refactor
+
+#### Testing Framework & Patterns
 - **Unit Tests**: Use Angular testing with Vitest (migrated from Karma)
-- **Signal Testing**: Test signal interactions and computed values
-- **Component Testing**: Mock services, test template bindings
-- **Vitest Features**: Faster execution, native ESM support, better watch mode
+- **Signal Testing**: Test signal interactions and computed values with TDD approach
+- **Component Testing**: Mock services, test template bindings, test-driven component development
+- **Vitest Features**: Faster execution, native ESM support, better watch mode for TDD cycles
 - **Coverage Target**: 90%+ (currently achieving 100% statements, 95%+ branches)
+
+#### TDD Examples for Angular 20
+```typescript
+// Signal TDD Example - TodoService
+describe('TodoService', () => {
+  it('should add new todo when calling addTodo', () => {
+    // Red: Test fails initially
+    const service = new TodoService();
+    const newTodo = { title: 'Test Todo', completed: false };
+    
+    service.addTodo(newTodo);
+    
+    expect(service.todos()).toContain(jasmine.objectContaining(newTodo));
+  });
+});
+
+// Component TDD Example - TodoListComponent
+describe('TodoListComponent', () => {
+  it('should display empty state when no todos exist', () => {
+    // Red: Write test first
+    const fixture = TestBed.createComponent(TodoListComponent);
+    component.todos.set([]);
+    fixture.detectChanges();
+    
+    expect(fixture.nativeElement.textContent).toContain('No todos found');
+  });
+});
+```
 
 ### Styling
 - Uses **SCSS** for all styling (configured in angular.json)
@@ -138,9 +186,14 @@ interface Todo {
 - `.cursor/rules/` - Development guidelines and architectural patterns
 
 ## Current Phase Focus
-Working on Phase 2 (Week 2) of the roadmap:
-- PR #4: Todo Item Component
-- PR #5: Add Todo Form Component  
-- PR #6: Component Integration
+Working on Phase 2 (Week 2) of the roadmap using **TDD methodology**:
+- PR #4: Todo Item Component (test-driven development)
+- PR #5: Add Todo Form Component (test-driven development)
+- PR #6: Component Integration (test-driven development)
 
-Each PR should be 2-5 hours of focused development following the patterns established in Phase 1.
+### TDD Development Approach for Phase 2
+- **2-5 hours per PR** with 50% time spent on tests (test-first approach)
+- **Red-Green-Refactor cycles** for each component feature
+- **Signal testing patterns** for state management
+- **Component behavior testing** before template implementation
+- Follow patterns established in Phase 1 with TDD enhancement
