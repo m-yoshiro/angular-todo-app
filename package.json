@@ -3,12 +3,23 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "dev": "ng serve",
+    "start": "npm run dev",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
+    "build:dev": "ng build --configuration development",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:angular-todo-app": "node dist/angular-todo-app/server/server.mjs",
-    "lint": "ng lint"
+    "test:coverage": "ng test --code-coverage",
+    "test:watch": "ng test --watch",
+    "lint": "ng lint",
+    "lint:fix": "ng lint --fix",
+    "serve:ssr": "node dist/angular-todo-app/server/server.mjs",
+    "serve:ssr:angular-todo-app": "npm run serve:ssr",
+    "clean": "rm -rf dist",
+    "check": "npm run lint && npm run test",
+    "precommit": "npm run lint && npm run test",
+    "validate": "npm run lint && npm run test && npm run build"
   },
   "private": true,
   "dependencies": {

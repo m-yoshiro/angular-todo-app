@@ -5,19 +5,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 **Build & Serve:**
-- `ng serve` - Start development server (http://localhost:4200)
-- `ng build` - Build for production
-- `ng build --watch --configuration development` - Build in watch mode
+- `npm start` - Start development server (http://localhost:4200)
+- `npm run dev` - Start development server (alias for start)
+- `npm run build` - Build for production
+- `npm run build:dev` - Build for development
+- `npm run build:prod` - Build for production (explicit)
+- `npm run watch` - Build in watch mode
 
 **Testing:**
-- `ng test` - Run unit tests with Karma
-- `ng test --code-coverage` - Run tests with coverage report
+- `npm test` - Run unit tests with Karma
+- `npm run test:coverage` - Run tests with coverage report
+- `npm run test:watch` - Run tests in watch mode
 - Tests use Jasmine framework with Angular Testing Utilities
 
 **Code Quality:**
-- `ng lint` - Run ESLint for TypeScript and HTML files
+- `npm run lint` - Run ESLint for TypeScript and HTML files
+- `npm run lint:fix` - Run ESLint and auto-fix issues
+- `npm run check` - Run lint and tests together
+- `npm run validate` - Run full validation (lint + test + build)
 - ESLint configured with Angular and TypeScript rules
 - Uses angular-eslint, @typescript-eslint packages
+
+**SSR & Production:**
+- `npm run serve:ssr` - Serve SSR application
+- `npm run clean` - Clean dist folder
+
+**Quality Assurance:**
+- `npm run precommit` - Pre-commit checks (lint + test)
+- `npm run validate` - Full project validation
 
 ## Project Architecture
 
