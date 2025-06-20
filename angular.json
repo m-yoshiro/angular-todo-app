@@ -90,6 +90,17 @@
               "src/**/*.html"
             ]
           }
+        },
+        "e2e": {
+          "builder": "playwright-ng-schematics:playwright",
+          "options": {
+            "devServerTarget": "angular-todo-app:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "angular-todo-app:serve:production"
+            }
+          }
         }
       }
     }
