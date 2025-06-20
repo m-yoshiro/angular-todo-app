@@ -19,7 +19,12 @@
     "clean": "rm -rf dist",
     "check": "npm run lint && npm run test",
     "precommit": "npm run lint && npm run test",
-    "validate": "npm run lint && npm run test && npm run build"
+    "validate": "npm run lint && npm run test && npm run build",
+    "e2e": "ng e2e",
+    "e2e:dev": "ng e2e --configuration=development",
+    "e2e:headed": "npx playwright test --headed",
+    "e2e:debug": "npx playwright test --debug",
+    "e2e:report": "npx playwright show-report"
   },
   "private": true,
   "dependencies": {
@@ -42,12 +47,14 @@
     "@angular/build": "^20.0.2",
     "@angular/cli": "^20.0.2",
     "@angular/compiler-cli": "^20.0.0",
+    "@playwright/test": "1.53.1",
     "@types/express": "^5.0.1",
     "@types/node": "^20.17.19",
     "@vitest/coverage-v8": "^3.2.4",
     "angular-eslint": "20.1.0",
     "eslint": "^9.29.0",
     "jsdom": "^26.1.0",
+    "playwright-ng-schematics": "^2.1.0",
     "typescript": "~5.8.2",
     "typescript-eslint": "8.34.0",
     "vitest": "^3.2.4"
