@@ -17,9 +17,17 @@ export class AddTodoFormComponent {
   
   isSubmitting = signal(false);
   
+  priorityOptions = [
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' }
+  ];
+  
   todoForm = this.fb.group({
     title: ['', [Validators.required]],
-    description: ['']
+    description: [''],
+    priority: ['medium'],
+    dueDate: ['']
   });
 
   onSubmit(): void {
@@ -29,13 +37,17 @@ export class AddTodoFormComponent {
       const formValue = this.todoForm.value;
       const createRequest: CreateTodoRequest = {
         title: formValue.title || '',
-        description: formValue.description || undefined
+        description: formValue.description || undefined,
+        priority: formValue.priority as 'low' | 'medium' | 'high' || 'medium',
+        dueDate: formValue.dueDate ? new Date(formValue.dueDate) : undefined
       };
       
       this.formSubmit.emit(createRequest);
       this.todoForm.reset({
         title: '',
-        description: ''
+        description: '',
+        priority: 'medium',
+        dueDate: ''
       });
       this.isSubmitting.set(false);
     }
