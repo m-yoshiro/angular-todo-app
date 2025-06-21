@@ -1,6 +1,6 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CreateTodoRequest } from '../../models/todo.model';
 
 @Component({
@@ -27,8 +27,29 @@ export class AddTodoFormComponent {
     title: ['', [Validators.required]],
     description: [''],
     priority: ['medium'],
-    dueDate: ['']
+    dueDate: ['', [this.futureDateValidator]]
   });
+
+  private futureDateValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value) {
+      return null;
+    }
+
+    const inputDate = new Date(control.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (inputDate < today) {
+      return { pastDate: true };
+    }
+
+    return null;
+  }
+
+  private validatePriority(priority: string | null | undefined): 'low' | 'medium' | 'high' {
+    const validPriorities: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
+    return validPriorities.includes(priority as 'low' | 'medium' | 'high') ? (priority as 'low' | 'medium' | 'high') : 'medium';
+  }
 
   onSubmit(): void {
     if (this.todoForm.valid) {
@@ -38,7 +59,7 @@ export class AddTodoFormComponent {
       const createRequest: CreateTodoRequest = {
         title: formValue.title || '',
         description: formValue.description || undefined,
-        priority: formValue.priority as 'low' | 'medium' | 'high' || 'medium',
+        priority: this.validatePriority(formValue.priority),
         dueDate: formValue.dueDate ? new Date(formValue.dueDate) : undefined
       };
       
