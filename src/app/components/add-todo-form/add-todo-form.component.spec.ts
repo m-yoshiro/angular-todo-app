@@ -82,8 +82,12 @@ describe('AddTodoFormComponent', () => {
     });
 
     it('should be valid when title has value with optional due date', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDateString = futureDate.toISOString().split('T')[0];
+      
       component.todoForm.get('title')?.setValue('Test Todo');
-      component.todoForm.get('dueDate')?.setValue('2024-12-31');
+      component.todoForm.get('dueDate')?.setValue(futureDateString);
       expect(component.todoForm.valid).toBe(true);
     });
 
@@ -95,6 +99,90 @@ describe('AddTodoFormComponent', () => {
     it('should not require description field', () => {
       const descriptionControl = component.todoForm.get('description');
       expect(descriptionControl?.hasError('required')).toBe(false);
+    });
+
+    describe('Priority Type Safety', () => {
+      it('should handle valid priority values correctly', () => {
+        const validPriorities: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
+        
+        validPriorities.forEach(priority => {
+          component.todoForm.get('priority')?.setValue(priority);
+          expect(component.todoForm.get('priority')?.value).toBe(priority);
+        });
+      });
+
+      it('should default to medium when priority is invalid or null', () => {
+        component.todoForm.get('title')?.setValue('Test Todo');
+        component.todoForm.get('priority')?.setValue(null);
+        
+        vi.spyOn(component.formSubmit, 'emit');
+        component.onSubmit();
+        
+        expect(component.formSubmit.emit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            priority: 'medium'
+          })
+        );
+      });
+
+      it('should handle empty string priority by defaulting to medium', () => {
+        component.todoForm.get('title')?.setValue('Test Todo');
+        component.todoForm.get('priority')?.setValue('');
+        
+        vi.spyOn(component.formSubmit, 'emit');
+        component.onSubmit();
+        
+        expect(component.formSubmit.emit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            priority: 'medium'
+          })
+        );
+      });
+    });
+
+    describe('Due Date Validation', () => {
+      it('should be invalid when due date is in the past', () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayString = yesterday.toISOString().split('T')[0];
+        
+        component.todoForm.get('title')?.setValue('Test Todo');
+        component.todoForm.get('dueDate')?.setValue(yesterdayString);
+        
+        expect(component.todoForm.get('dueDate')?.hasError('pastDate')).toBe(true);
+        expect(component.todoForm.invalid).toBe(true);
+      });
+
+      it('should be valid when due date is today', () => {
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        
+        component.todoForm.get('title')?.setValue('Test Todo');
+        component.todoForm.get('dueDate')?.setValue(todayString);
+        
+        expect(component.todoForm.get('dueDate')?.hasError('pastDate')).toBe(false);
+        expect(component.todoForm.valid).toBe(true);
+      });
+
+      it('should be valid when due date is in the future', () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowString = tomorrow.toISOString().split('T')[0];
+        
+        component.todoForm.get('title')?.setValue('Test Todo');
+        component.todoForm.get('dueDate')?.setValue(tomorrowString);
+        
+        expect(component.todoForm.get('dueDate')?.hasError('pastDate')).toBe(false);
+        expect(component.todoForm.valid).toBe(true);
+      });
+
+      it('should be valid when due date is empty', () => {
+        component.todoForm.get('title')?.setValue('Test Todo');
+        component.todoForm.get('dueDate')?.setValue('');
+        
+        expect(component.todoForm.get('dueDate')?.hasError('pastDate')).toBe(false);
+        expect(component.todoForm.valid).toBe(true);
+      });
     });
   });
 
@@ -123,11 +211,15 @@ describe('AddTodoFormComponent', () => {
     it('should emit formSubmit event with priority and due date when provided', () => {
       vi.spyOn(component.formSubmit, 'emit');
       
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDateString = futureDate.toISOString().split('T')[0];
+      
       const formData = {
         title: 'Test Todo',
         description: 'Test Description',
         priority: 'high',
-        dueDate: '2024-12-31'
+        dueDate: futureDateString
       };
       
       component.todoForm.patchValue(formData);
@@ -137,7 +229,7 @@ describe('AddTodoFormComponent', () => {
         title: 'Test Todo',
         description: 'Test Description',
         priority: 'high',
-        dueDate: new Date('2024-12-31')
+        dueDate: new Date(futureDateString)
       };
 
       expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
@@ -173,11 +265,15 @@ describe('AddTodoFormComponent', () => {
     });
 
     it('should reset form after successful submission', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDateString = futureDate.toISOString().split('T')[0];
+      
       component.todoForm.patchValue({
         title: 'Test Todo',
         description: 'Test Description',
         priority: 'high',
-        dueDate: '2024-12-31'
+        dueDate: futureDateString
       });
       
       component.onSubmit();
@@ -260,6 +356,41 @@ describe('AddTodoFormComponent', () => {
       
       expect(dateInput).toBeTruthy();
       expect(dateInput.type).toBe('date');
+    });
+
+    describe('Accessibility', () => {
+      it('should have aria-describedby attribute on priority select', () => {
+        const compiled = fixture.nativeElement;
+        const prioritySelect = compiled.querySelector('#priority');
+        
+        expect(prioritySelect).toBeTruthy();
+        expect(prioritySelect.getAttribute('aria-describedby')).toBe('priority-help');
+      });
+
+      it('should have aria-describedby attribute on due date input', () => {
+        const compiled = fixture.nativeElement;
+        const dueDateInput = compiled.querySelector('#dueDate');
+        
+        expect(dueDateInput).toBeTruthy();
+        expect(dueDateInput.getAttribute('aria-describedby')).toBe('duedate-help');
+      });
+
+      it('should have proper aria-label for submit button', () => {
+        const compiled = fixture.nativeElement;
+        const submitButton = compiled.querySelector('button[type="submit"]');
+        
+        expect(submitButton).toBeTruthy();
+        expect(submitButton.getAttribute('aria-label')).toBe('Add new todo item');
+      });
+
+      it('should have role attribute on form for screen readers', () => {
+        const compiled = fixture.nativeElement;
+        const form = compiled.querySelector('form');
+        
+        expect(form).toBeTruthy();
+        expect(form.getAttribute('role')).toBe('form');
+        expect(form.getAttribute('aria-label')).toBe('Add new todo form');
+      });
     });
   });
 
