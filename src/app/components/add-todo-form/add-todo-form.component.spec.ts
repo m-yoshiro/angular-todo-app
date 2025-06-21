@@ -31,13 +31,36 @@ describe('AddTodoFormComponent', () => {
       expect(component.todoForm.get('description')).toBeTruthy();
     });
 
+    it('should initialize form with priority and dueDate fields', () => {
+      expect(component.todoForm.get('priority')).toBeTruthy();
+      expect(component.todoForm.get('dueDate')).toBeTruthy();
+    });
+
     it('should have empty initial form values', () => {
       expect(component.todoForm.get('title')?.value).toBe('');
       expect(component.todoForm.get('description')?.value).toBe('');
     });
 
+    it('should have default priority value as medium', () => {
+      expect(component.todoForm.get('priority')?.value).toBe('medium');
+    });
+
+    it('should have empty initial dueDate value', () => {
+      expect(component.todoForm.get('dueDate')?.value).toBe('');
+    });
+
     it('should initialize signals correctly', () => {
       expect(component.isSubmitting()).toBe(false);
+    });
+
+    it('should have priority options available', () => {
+      expect(component.priorityOptions).toBeTruthy();
+      expect(component.priorityOptions.length).toBe(3);
+      expect(component.priorityOptions).toEqual([
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' }
+      ]);
     });
   });
 
@@ -49,6 +72,18 @@ describe('AddTodoFormComponent', () => {
 
     it('should be valid when title has value', () => {
       component.todoForm.get('title')?.setValue('Test Todo');
+      expect(component.todoForm.valid).toBe(true);
+    });
+
+    it('should be valid when title has value and priority is set', () => {
+      component.todoForm.get('title')?.setValue('Test Todo');
+      component.todoForm.get('priority')?.setValue('high');
+      expect(component.todoForm.valid).toBe(true);
+    });
+
+    it('should be valid when title has value with optional due date', () => {
+      component.todoForm.get('title')?.setValue('Test Todo');
+      component.todoForm.get('dueDate')?.setValue('2024-12-31');
       expect(component.todoForm.valid).toBe(true);
     });
 
@@ -77,7 +112,52 @@ describe('AddTodoFormComponent', () => {
 
       const expectedRequest: CreateTodoRequest = {
         title: 'Test Todo',
+        description: 'Test Description',
+        priority: 'medium',
+        dueDate: undefined
+      };
+
+      expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
+    });
+
+    it('should emit formSubmit event with priority and due date when provided', () => {
+      vi.spyOn(component.formSubmit, 'emit');
+      
+      const formData = {
+        title: 'Test Todo',
+        description: 'Test Description',
+        priority: 'high',
+        dueDate: '2024-12-31'
+      };
+      
+      component.todoForm.patchValue(formData);
+      component.onSubmit();
+
+      const expectedRequest: CreateTodoRequest = {
+        title: 'Test Todo',
+        description: 'Test Description',
+        priority: 'high',
+        dueDate: new Date('2024-12-31')
+      };
+
+      expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
+    });
+
+    it('should emit formSubmit event with default priority when not specified', () => {
+      vi.spyOn(component.formSubmit, 'emit');
+      
+      const formData = {
+        title: 'Test Todo',
         description: 'Test Description'
+      };
+      
+      component.todoForm.patchValue(formData);
+      component.onSubmit();
+
+      const expectedRequest: CreateTodoRequest = {
+        title: 'Test Todo',
+        description: 'Test Description',
+        priority: 'medium'
       };
 
       expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
@@ -95,13 +175,17 @@ describe('AddTodoFormComponent', () => {
     it('should reset form after successful submission', () => {
       component.todoForm.patchValue({
         title: 'Test Todo',
-        description: 'Test Description'
+        description: 'Test Description',
+        priority: 'high',
+        dueDate: '2024-12-31'
       });
       
       component.onSubmit();
 
       expect(component.todoForm.get('title')?.value).toBe('');
       expect(component.todoForm.get('description')?.value).toBe('');
+      expect(component.todoForm.get('priority')?.value).toBe('medium');
+      expect(component.todoForm.get('dueDate')?.value).toBe('');
     });
 
     it('should set submitting state during submission', () => {
@@ -120,6 +204,8 @@ describe('AddTodoFormComponent', () => {
       
       expect(compiled.querySelector('#title')).toBeTruthy();
       expect(compiled.querySelector('#description')).toBeTruthy();
+      expect(compiled.querySelector('#priority')).toBeTruthy();
+      expect(compiled.querySelector('#dueDate')).toBeTruthy();
     });
 
     it('should render submit button', () => {
@@ -144,6 +230,36 @@ describe('AddTodoFormComponent', () => {
 
       const submitButton = fixture.nativeElement.querySelector('button[type="submit"]');
       expect(submitButton.disabled).toBe(false);
+    });
+
+    it('should render priority dropdown with correct options', () => {
+      const compiled = fixture.nativeElement;
+      const prioritySelect = compiled.querySelector('#priority');
+      
+      expect(prioritySelect).toBeTruthy();
+      expect(prioritySelect.tagName).toBe('SELECT');
+      
+      const options = prioritySelect.querySelectorAll('option');
+      expect(options.length).toBe(3);
+      expect(options[0].value).toBe('low');
+      expect(options[1].value).toBe('medium');
+      expect(options[2].value).toBe('high');
+    });
+
+    it('should have medium as default selected priority', () => {
+      fixture.detectChanges();
+      const compiled = fixture.nativeElement;
+      const prioritySelect = compiled.querySelector('#priority');
+      
+      expect(prioritySelect.value).toBe('medium');
+    });
+
+    it('should render date input with correct type', () => {
+      const compiled = fixture.nativeElement;
+      const dateInput = compiled.querySelector('#dueDate');
+      
+      expect(dateInput).toBeTruthy();
+      expect(dateInput.type).toBe('date');
     });
   });
 

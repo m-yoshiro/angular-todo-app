@@ -31,6 +31,33 @@
   </div>
 
   <div>
+    <label for="priority" class="block text-sm font-medium text-gray-700">
+      Priority
+    </label>
+    <select
+      id="priority"
+      formControlName="priority"
+      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+    >
+      @for (option of priorityOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </div>
+
+  <div>
+    <label for="dueDate" class="block text-sm font-medium text-gray-700">
+      Due Date
+    </label>
+    <input
+      type="date"
+      id="dueDate"
+      formControlName="dueDate"
+      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+    />
+  </div>
+
+  <div>
     <button
       type="submit"
       [disabled]="todoForm.invalid || isSubmitting()"
