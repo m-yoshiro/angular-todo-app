@@ -1,3 +1,29 @@
+/**
+ * @fileoverview Core data models and interfaces for the Angular 20 Todo application.
+ * @description This module defines all TypeScript interfaces used throughout the application
+ * for todo items, API requests, filters, and statistics. These models ensure type safety
+ * and provide clear data contracts between components and services.
+ */
+
+/**
+ * Represents a complete todo item with all its properties.
+ * @description The main todo entity containing all information about a task including
+ * metadata, priority, due dates, and organizational tags.
+ * @example
+ * ```typescript
+ * const todo: Todo = {
+ *   id: '123',
+ *   title: 'Complete project',
+ *   description: 'Finish the Angular todo app',
+ *   completed: false,
+ *   createdAt: new Date(),
+ *   updatedAt: new Date(),
+ *   priority: 'high',
+ *   dueDate: new Date('2024-12-31'),
+ *   tags: ['work', 'urgent']
+ * };
+ * ```
+ */
 export interface Todo {
   id: string;
   title: string;
@@ -10,6 +36,11 @@ export interface Todo {
   tags?: string[];
 }
 
+/**
+ * Request payload for creating a new todo item.
+ * @description Used when submitting data to create a new todo. Only essential
+ * fields are required, with optional metadata that can be added during creation.
+ */
 export interface CreateTodoRequest {
   title: string;
   description?: string;
@@ -18,6 +49,11 @@ export interface CreateTodoRequest {
   tags?: string[];
 }
 
+/**
+ * Request payload for updating an existing todo item.
+ * @description Partial update interface allowing modification of any todo property.
+ * All fields are optional to support incremental updates.
+ */
 export interface UpdateTodoRequest {
   title?: string;
   description?: string;
@@ -27,6 +63,11 @@ export interface UpdateTodoRequest {
   tags?: string[];
 }
 
+/**
+ * Filter criteria for searching and filtering todo items.
+ * @description Supports multiple filter combinations including completion status,
+ * priority levels, text search, tags, and date ranges.
+ */
 export interface TodoFilter {
   completed?: boolean;
   priority?: 'low' | 'medium' | 'high';
@@ -36,6 +77,11 @@ export interface TodoFilter {
   dueDateTo?: Date;
 }
 
+/**
+ * Statistical summary of todo items across various dimensions.
+ * @description Computed statistics providing insights into todo completion rates,
+ * priority distribution, and overdue items for dashboard and reporting purposes.
+ */
 export interface TodoStatistics {
   total: number;
   completed: number;
