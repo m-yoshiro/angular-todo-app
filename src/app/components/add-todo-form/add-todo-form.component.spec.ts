@@ -415,4 +415,250 @@ describe('AddTodoFormComponent', () => {
       expect(errorElement).toBeFalsy();
     });
   });
+
+  describe('Tag Management System - TDD Tests', () => {
+    describe('Tag Input Functionality', () => {
+      it('should have tags FormArray in the form', () => {
+        expect(component.todoForm.get('tags')).toBeTruthy();
+        expect(component.todoForm.get('tags')?.value).toEqual([]);
+      });
+
+      it('should have currentTagInput signal for managing tag input state', () => {
+        expect(component.currentTagInput).toBeTruthy();
+        expect(component.currentTagInput()).toBe('');
+      });
+
+      it('should add tag when addTag method is called with valid input', () => {
+        component.currentTagInput.set('work');
+        component.addTag();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toContain('work');
+        expect(component.currentTagInput()).toBe('');
+      });
+
+      it('should add tag when Enter key is pressed in tag input', () => {
+        component.currentTagInput.set('urgent');
+        component.onTagInputKeyDown({ key: 'Enter', preventDefault: vi.fn() } as unknown as KeyboardEvent);
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toContain('urgent');
+      });
+
+      it('should add tag when comma is entered in tag input', () => {
+        component.currentTagInput.set('home');
+        component.onTagInputKeyDown({ key: ',', preventDefault: vi.fn() } as unknown as KeyboardEvent);
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toContain('home');
+      });
+
+      it('should trim whitespace from tags before adding', () => {
+        component.currentTagInput.set('  spaced  ');
+        component.addTag();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toContain('spaced');
+        expect(tagsArray).not.toContain('  spaced  ');
+      });
+    });
+
+    describe('Tag Validation', () => {
+      it('should not add empty tags', () => {
+        component.currentTagInput.set('');
+        component.addTag();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toEqual([]);
+      });
+
+      it('should not add whitespace-only tags', () => {
+        component.currentTagInput.set('   ');
+        component.addTag();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toEqual([]);
+      });
+
+      it('should not add duplicate tags', () => {
+        component.currentTagInput.set('work');
+        component.addTag();
+        component.currentTagInput.set('work');
+        component.addTag();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray.filter((tag: string) => tag === 'work')).toHaveLength(1);
+      });
+
+      it('should not add duplicate tags (case insensitive)', () => {
+        component.currentTagInput.set('Work');
+        component.addTag();
+        component.currentTagInput.set('WORK');
+        component.addTag();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toHaveLength(1);
+        expect(tagsArray[0]).toBe('Work');
+      });
+
+      it('should enforce maximum tag length limit', () => {
+        const longTag = 'a'.repeat(51); // Assuming 50 char limit
+        component.currentTagInput.set(longTag);
+        component.addTag();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toEqual([]);
+      });
+
+      it('should enforce maximum number of tags limit', () => {
+        // Add 10 tags (assuming 10 is the limit)
+        for (let i = 1; i <= 11; i++) {
+          component.currentTagInput.set(`tag${i}`);
+          component.addTag();
+        }
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toHaveLength(10);
+        expect(tagsArray).not.toContain('tag11');
+      });
+    });
+
+    describe('Tag Chip Display and Removal', () => {
+      beforeEach(() => {
+        // Add some test tags
+        component.currentTagInput.set('work');
+        component.addTag();
+        component.currentTagInput.set('urgent');
+        component.addTag();
+        fixture.detectChanges();
+      });
+
+      it('should display tag chips for existing tags', () => {
+        fixture.detectChanges();
+        const tagChips = fixture.nativeElement.querySelectorAll('.tag-chip');
+        expect(tagChips.length).toBe(2);
+      });
+
+      it('should display correct tag text in chips', () => {
+        fixture.detectChanges();
+        const tagChips = fixture.nativeElement.querySelectorAll('.tag-chip');
+        const tagTexts = Array.from(tagChips as NodeListOf<Element>).map((chip: Element) => {
+          // Extract just the tag text (before the remove button)
+          const textNode = chip.childNodes[0];
+          return textNode ? textNode.textContent?.trim() : '';
+        });
+        expect(tagTexts).toContain('work');
+        expect(tagTexts).toContain('urgent');
+      });
+
+      it('should have remove button for each tag chip', () => {
+        fixture.detectChanges();
+        const removeButtons = fixture.nativeElement.querySelectorAll('.tag-remove-btn');
+        expect(removeButtons.length).toBe(2);
+      });
+
+      it('should remove tag when remove button is clicked', () => {
+        fixture.detectChanges();
+        const removeButtons = fixture.nativeElement.querySelectorAll('.tag-remove-btn');
+        removeButtons[0].click();
+        fixture.detectChanges();
+        
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toHaveLength(1);
+        expect(tagsArray).not.toContain('work');
+      });
+
+      it('should call removeTag method with correct index', () => {
+        vi.spyOn(component, 'removeTag');
+        fixture.detectChanges();
+        const removeButtons = fixture.nativeElement.querySelectorAll('.tag-remove-btn');
+        removeButtons[1].click();
+        
+        expect(component.removeTag).toHaveBeenCalledWith(1);
+      });
+    });
+
+    describe('Form Integration with Tags', () => {
+      it('should include tags in form submission when tags are present', () => {
+        vi.spyOn(component.formSubmit, 'emit');
+        
+        component.todoForm.patchValue({ title: 'Test Todo' });
+        component.currentTagInput.set('work');
+        component.addTag();
+        component.currentTagInput.set('urgent');
+        component.addTag();
+        
+        component.onSubmit();
+
+        const expectedRequest: CreateTodoRequest = {
+          title: 'Test Todo',
+          priority: 'medium',
+          tags: ['work', 'urgent']
+        };
+
+        expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
+      });
+
+      it('should not include tags field when no tags are added', () => {
+        vi.spyOn(component.formSubmit, 'emit');
+        
+        component.todoForm.patchValue({ title: 'Test Todo' });
+        component.onSubmit();
+
+        const expectedRequest: CreateTodoRequest = {
+          title: 'Test Todo',
+          priority: 'medium'
+        };
+
+        expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
+      });
+
+      it('should reset tags when form is reset after submission', () => {
+        component.todoForm.patchValue({ title: 'Test Todo' });
+        component.currentTagInput.set('work');
+        component.addTag();
+        
+        component.onSubmit();
+
+        const tagsArray = component.todoForm.get('tags')?.value as string[];
+        expect(tagsArray).toEqual([]);
+      });
+
+      it('should maintain form validity with tags added', () => {
+        component.todoForm.patchValue({ title: 'Test Todo' });
+        component.currentTagInput.set('work');
+        component.addTag();
+        
+        expect(component.todoForm.valid).toBe(true);
+      });
+    });
+
+    describe('Tag Input Template Elements', () => {
+      it('should render tag input field', () => {
+        const tagInput = fixture.nativeElement.querySelector('#tagInput');
+        expect(tagInput).toBeTruthy();
+        expect(tagInput.type).toBe('text');
+      });
+
+      it('should render tag chips container', () => {
+        const tagsContainer = fixture.nativeElement.querySelector('.tags-container');
+        expect(tagsContainer).toBeTruthy();
+      });
+
+      it('should have proper accessibility attributes for tag input', () => {
+        const tagInput = fixture.nativeElement.querySelector('#tagInput');
+        expect(tagInput.getAttribute('aria-label')).toBeTruthy();
+        expect(tagInput.getAttribute('placeholder')).toBeTruthy();
+      });
+
+      it('should bind tag input value to currentTagInput signal', () => {
+        const tagInput = fixture.nativeElement.querySelector('#tagInput');
+        tagInput.value = 'test-tag';
+        tagInput.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+        
+        expect(component.currentTagInput()).toBe('test-tag');
+      });
+    });
+  });
 });

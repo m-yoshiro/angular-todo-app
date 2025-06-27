@@ -7,7 +7,7 @@
 
 import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors, FormArray } from '@angular/forms';
 import { CreateTodoRequest } from '../../models/todo.model';
 
 /**
@@ -64,8 +64,21 @@ export class AddTodoFormComponent {
     title: ['', [Validators.required]],
     description: [''],
     priority: ['medium'],
-    dueDate: ['', [this.futureDateValidator]]
+    dueDate: ['', [this.futureDateValidator]],
+    tags: this.fb.array([])
   });
+
+  /** Signal for managing current tag input value */
+  currentTagInput = signal('');
+
+  /** Signal for current tags array that updates with form changes */
+  currentTags = signal<string[]>([]);
+
+  /** Maximum tag length allowed */
+  private readonly MAX_TAG_LENGTH = 50;
+
+  /** Maximum number of tags allowed */
+  private readonly MAX_TAGS_COUNT = 10;
 
   /**
    * Custom validator ensuring due dates are not in the past.
@@ -99,6 +112,78 @@ export class AddTodoFormComponent {
   }
 
   /**
+   * Gets the tags FormArray from the form.
+   * @returns The tags FormArray
+   */
+  private get tagsArray(): FormArray {
+    return this.todoForm.get('tags') as FormArray;
+  }
+
+  /**
+   * Adds a new tag to the tags array.
+   * @description Validates the tag input, checks for duplicates, length limits,
+   * and maximum tag count before adding to the form array.
+   */
+  addTag(): void {
+    const tagValue = this.currentTagInput().trim();
+    
+    // Validate tag input
+    if (!tagValue || tagValue.length === 0) {
+      return;
+    }
+
+    // Check tag length limit
+    if (tagValue.length > this.MAX_TAG_LENGTH) {
+      return;
+    }
+
+    // Check maximum tags count
+    if (this.tagsArray.length >= this.MAX_TAGS_COUNT) {
+      return;
+    }
+
+    // Check for duplicates (case insensitive)
+    const currentTags = this.tagsArray.value;
+    const isDuplicate = currentTags.some((tag: string) => 
+      tag.toLowerCase() === tagValue.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      return;
+    }
+
+    // Add tag to form array
+    this.tagsArray.push(this.fb.control(tagValue));
+    this.currentTagInput.set('');
+    
+    // Update the signal
+    this.currentTags.set(this.tagsArray.value);
+  }
+
+  /**
+   * Removes a tag from the tags array at the specified index.
+   * @param index - The index of the tag to remove
+   */
+  removeTag(index: number): void {
+    if (index >= 0 && index < this.tagsArray.length) {
+      this.tagsArray.removeAt(index);
+      // Update the signal
+      this.currentTags.set(this.tagsArray.value);
+    }
+  }
+
+  /**
+   * Handles keyboard events for tag input.
+   * @param event - The keyboard event
+   */
+  onTagInputKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      this.addTag();
+    }
+  }
+
+  /**
    * Handles form submission with validation and data transformation.
    * @description Validates the form, creates a properly typed request object,
    * emits the form data, and resets the form to its initial state.
@@ -108,11 +193,14 @@ export class AddTodoFormComponent {
       this.isSubmitting.set(true);
       
       const formValue = this.todoForm.value;
+      const tags = this.tagsArray.value;
+      
       const createRequest: CreateTodoRequest = {
         title: formValue.title || '',
         description: formValue.description || undefined,
         priority: this.validatePriority(formValue.priority),
-        dueDate: formValue.dueDate ? new Date(formValue.dueDate) : undefined
+        dueDate: formValue.dueDate ? new Date(formValue.dueDate) : undefined,
+        ...(tags.length > 0 && { tags })
       };
       
       this.formSubmit.emit(createRequest);
@@ -122,6 +210,15 @@ export class AddTodoFormComponent {
         priority: 'medium',
         dueDate: ''
       });
+      
+      // Reset tags array
+      while (this.tagsArray.length !== 0) {
+        this.tagsArray.removeAt(0);
+      }
+      
+      // Reset tags signal
+      this.currentTags.set([]);
+      
       this.isSubmitting.set(false);
     }
   }
