@@ -74,6 +74,9 @@ export class AddTodoFormComponent {
   /** Signal for current tags array that updates with form changes */
   currentTags = signal<string[]>([]);
 
+  /** Signal for tag validation error messages */
+  tagError = signal<string>('');
+
   /** Maximum tag length allowed */
   private readonly MAX_TAG_LENGTH = 50;
 
@@ -127,18 +130,24 @@ export class AddTodoFormComponent {
   addTag(): void {
     const tagValue = this.currentTagInput().trim();
     
+    // Clear previous error
+    this.tagError.set('');
+    
     // Validate tag input
     if (!tagValue || tagValue.length === 0) {
+      this.tagError.set('Tag cannot be empty');
       return;
     }
 
     // Check tag length limit
     if (tagValue.length > this.MAX_TAG_LENGTH) {
+      this.tagError.set(`Tag cannot exceed ${this.MAX_TAG_LENGTH} characters`);
       return;
     }
 
     // Check maximum tags count
     if (this.tagsArray.length >= this.MAX_TAGS_COUNT) {
+      this.tagError.set(`Maximum ${this.MAX_TAGS_COUNT} tags allowed`);
       return;
     }
 
@@ -149,6 +158,7 @@ export class AddTodoFormComponent {
     );
 
     if (isDuplicate) {
+      this.tagError.set('Tag already exists');
       return;
     }
 
@@ -204,22 +214,27 @@ export class AddTodoFormComponent {
       };
       
       this.formSubmit.emit(createRequest);
-      this.todoForm.reset({
-        title: '',
-        description: '',
-        priority: 'medium',
-        dueDate: ''
-      });
       
-      // Reset tags array
-      while (this.tagsArray.length !== 0) {
-        this.tagsArray.removeAt(0);
-      }
-      
-      // Reset tags signal
-      this.currentTags.set([]);
-      
-      this.isSubmitting.set(false);
+      // Simulate async operation for better UX - show loading state briefly
+      setTimeout(() => {
+        this.todoForm.reset({
+          title: '',
+          description: '',
+          priority: 'medium',
+          dueDate: ''
+        });
+        
+        // Reset tags array
+        while (this.tagsArray.length !== 0) {
+          this.tagsArray.removeAt(0);
+        }
+        
+        // Reset tags and error signals
+        this.currentTags.set([]);
+        this.tagError.set('');
+        
+        this.isSubmitting.set(false);
+      }, 300);
     }
   }
 }

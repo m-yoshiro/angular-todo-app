@@ -264,7 +264,7 @@ describe('AddTodoFormComponent', () => {
       expect(component.formSubmit.emit).not.toHaveBeenCalled();
     });
 
-    it('should reset form after successful submission', () => {
+    it('should reset form after successful submission', async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
       const futureDateString = futureDate.toISOString().split('T')[0];
@@ -278,18 +278,27 @@ describe('AddTodoFormComponent', () => {
       
       component.onSubmit();
 
+      // Wait for async reset
+      await new Promise(resolve => setTimeout(resolve, 350));
+
       expect(component.todoForm.get('title')?.value).toBe('');
       expect(component.todoForm.get('description')?.value).toBe('');
       expect(component.todoForm.get('priority')?.value).toBe('medium');
       expect(component.todoForm.get('dueDate')?.value).toBe('');
     });
 
-    it('should set submitting state during submission', () => {
+    it('should set submitting state during submission', async () => {
       component.todoForm.patchValue({ title: 'Test Todo' });
       
       component.onSubmit();
       
-      // Should be false after synchronous submission
+      // Should be true immediately after submission
+      expect(component.isSubmitting()).toBe(true);
+      
+      // Wait for async reset
+      await new Promise(resolve => setTimeout(resolve, 350));
+      
+      // Should be false after async reset
       expect(component.isSubmitting()).toBe(false);
     });
   });
@@ -613,12 +622,15 @@ describe('AddTodoFormComponent', () => {
         expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
       });
 
-      it('should reset tags when form is reset after submission', () => {
+      it('should reset tags when form is reset after submission', async () => {
         component.todoForm.patchValue({ title: 'Test Todo' });
         component.currentTagInput.set('work');
         component.addTag();
         
         component.onSubmit();
+
+        // Wait for async reset
+        await new Promise(resolve => setTimeout(resolve, 350));
 
         const tagsArray = component.todoForm.get('tags')?.value as string[];
         expect(tagsArray).toEqual([]);
@@ -659,6 +671,253 @@ describe('AddTodoFormComponent', () => {
         
         expect(component.currentTagInput()).toBe('test-tag');
       });
+    });
+  });
+
+  describe('Enhanced Error Handling and Display', () => {
+    describe('Due Date Error Display', () => {
+      it('should show error message when due date is in the past and touched', () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayString = yesterday.toISOString().split('T')[0];
+        
+        const dueDateControl = component.todoForm.get('dueDate');
+        dueDateControl?.setValue(yesterdayString);
+        dueDateControl?.markAsTouched();
+        fixture.detectChanges();
+
+        const errorElement = fixture.nativeElement.querySelector('.error-message');
+        expect(errorElement).toBeTruthy();
+        expect(errorElement.textContent.trim()).toBe('Due date cannot be in the past');
+      });
+
+      it('should not show error message when due date is valid', () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowString = tomorrow.toISOString().split('T')[0];
+        
+        const dueDateControl = component.todoForm.get('dueDate');
+        dueDateControl?.setValue(tomorrowString);
+        dueDateControl?.markAsTouched();
+        fixture.detectChanges();
+
+        const errorElements = fixture.nativeElement.querySelectorAll('.error-message');
+        const dueDateError = Array.from(errorElements as NodeListOf<HTMLElement>).find((el: HTMLElement) => 
+          el.textContent?.includes('Due date cannot be in the past')
+        );
+        expect(dueDateError).toBeFalsy();
+      });
+    });
+
+    describe('Tag Validation Error Display', () => {
+      it('should show error when adding empty tag', () => {
+        component.currentTagInput.set('');
+        component.addTag();
+        fixture.detectChanges();
+
+        expect(component.tagError()).toBe('Tag cannot be empty');
+        const errorElement = fixture.nativeElement.querySelector('.error-message');
+        expect(errorElement.textContent.trim()).toBe('Tag cannot be empty');
+      });
+
+      it('should show error when adding tag exceeding max length', () => {
+        const longTag = 'a'.repeat(51);
+        component.currentTagInput.set(longTag);
+        component.addTag();
+        fixture.detectChanges();
+
+        expect(component.tagError()).toBe('Tag cannot exceed 50 characters');
+      });
+
+      it('should show error when adding duplicate tag', () => {
+        component.currentTagInput.set('work');
+        component.addTag();
+        component.currentTagInput.set('work');
+        component.addTag();
+        fixture.detectChanges();
+
+        expect(component.tagError()).toBe('Tag already exists');
+      });
+
+      it('should show error when exceeding max tags count', () => {
+        // Add 10 tags
+        for (let i = 1; i <= 10; i++) {
+          component.currentTagInput.set(`tag${i}`);
+          component.addTag();
+        }
+        // Try to add 11th tag
+        component.currentTagInput.set('tag11');
+        component.addTag();
+        fixture.detectChanges();
+
+        expect(component.tagError()).toBe('Maximum 10 tags allowed');
+      });
+
+      it('should clear error when valid tag is added successfully', () => {
+        // First create an error
+        component.currentTagInput.set('');
+        component.addTag();
+        expect(component.tagError()).toBe('Tag cannot be empty');
+        
+        // Then add valid tag
+        component.currentTagInput.set('valid');
+        component.addTag();
+        
+        expect(component.tagError()).toBe('');
+      });
+    });
+
+    describe('Loading State Display', () => {
+      it('should show loading spinner and text during submission', () => {
+        component.isSubmitting.set(true);
+        fixture.detectChanges();
+
+        const button = fixture.nativeElement.querySelector('button[type="submit"]');
+        expect(button.textContent.trim()).toContain('Adding...');
+        
+        const spinner = button.querySelector('svg.animate-spin');
+        expect(spinner).toBeTruthy();
+      });
+
+      it('should show normal text when not submitting', () => {
+        component.isSubmitting.set(false);
+        fixture.detectChanges();
+
+        const button = fixture.nativeElement.querySelector('button[type="submit"]');
+        expect(button.textContent.trim()).toBe('Add Todo');
+        
+        const spinner = button.querySelector('svg.animate-spin');
+        expect(spinner).toBeFalsy();
+      });
+    });
+  });
+
+  describe('Integration Tests - Complete Form Workflow', () => {
+    it('should handle complete form submission workflow with all fields', async () => {
+      vi.spyOn(component.formSubmit, 'emit');
+      
+      // Fill out all form fields
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDateString = futureDate.toISOString().split('T')[0];
+      
+      component.todoForm.patchValue({
+        title: 'Complete Integration Test Todo',
+        description: 'Testing complete workflow',
+        priority: 'high',
+        dueDate: futureDateString
+      });
+      
+      // Add tags
+      component.currentTagInput.set('integration');
+      component.addTag();
+      component.currentTagInput.set('testing');
+      component.addTag();
+      
+      expect(component.todoForm.valid).toBe(true);
+      expect(component.currentTags()).toEqual(['integration', 'testing']);
+      
+      // Submit form
+      component.onSubmit();
+      
+      // Verify emission
+      const expectedRequest: CreateTodoRequest = {
+        title: 'Complete Integration Test Todo',
+        description: 'Testing complete workflow',
+        priority: 'high',
+        dueDate: new Date(futureDateString),
+        tags: ['integration', 'testing']
+      };
+      
+      expect(component.formSubmit.emit).toHaveBeenCalledWith(expectedRequest);
+      expect(component.isSubmitting()).toBe(true);
+      
+      // Wait for async reset
+      await new Promise(resolve => setTimeout(resolve, 350));
+      
+      // Verify form reset
+      expect(component.todoForm.get('title')?.value).toBe('');
+      expect(component.todoForm.get('description')?.value).toBe('');
+      expect(component.todoForm.get('priority')?.value).toBe('medium');
+      expect(component.todoForm.get('dueDate')?.value).toBe('');
+      expect(component.currentTags()).toEqual([]);
+      expect(component.tagError()).toBe('');
+      expect(component.isSubmitting()).toBe(false);
+    });
+
+    it('should handle form submission with validation errors', () => {
+      vi.spyOn(component.formSubmit, 'emit');
+      
+      // Set past date and empty title
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayString = yesterday.toISOString().split('T')[0];
+      
+      component.todoForm.patchValue({
+        title: '',
+        dueDate: yesterdayString
+      });
+      
+      // Mark fields as touched to trigger validation display
+      component.todoForm.get('title')?.markAsTouched();
+      component.todoForm.get('dueDate')?.markAsTouched();
+      
+      expect(component.todoForm.invalid).toBe(true);
+      
+      // Try to submit
+      component.onSubmit();
+      
+      // Should not emit
+      expect(component.formSubmit.emit).not.toHaveBeenCalled();
+      expect(component.isSubmitting()).toBe(false);
+    });
+
+    it('should handle tag validation errors during workflow', () => {
+      component.todoForm.patchValue({ title: 'Test Todo' });
+      
+      // Try to add invalid tags
+      component.currentTagInput.set('');
+      component.addTag();
+      expect(component.tagError()).toBe('Tag cannot be empty');
+      
+      // Add valid tag
+      component.currentTagInput.set('valid');
+      component.addTag();
+      expect(component.tagError()).toBe('');
+      expect(component.currentTags()).toEqual(['valid']);
+      
+      // Try duplicate
+      component.currentTagInput.set('valid');
+      component.addTag();
+      expect(component.tagError()).toBe('Tag already exists');
+      expect(component.currentTags()).toEqual(['valid']);
+    });
+
+    it('should maintain accessibility during complete workflow', () => {
+      fixture.detectChanges();
+      
+      // Check initial accessibility
+      const form = fixture.nativeElement.querySelector('form');
+      expect(form.getAttribute('role')).toBe('form');
+      expect(form.getAttribute('aria-label')).toBe('Add new todo form');
+      
+      // Fill form and trigger errors
+      const titleControl = component.todoForm.get('title');
+      titleControl?.setValue('');
+      titleControl?.markAsTouched();
+      fixture.detectChanges();
+      
+      // Check error message accessibility
+      const errorMessage = fixture.nativeElement.querySelector('.error-message');
+      expect(errorMessage).toBeTruthy();
+      
+      // Add tags and check tag accessibility
+      component.currentTagInput.set('test');
+      component.addTag();
+      fixture.detectChanges();
+      
+      const removeButton = fixture.nativeElement.querySelector('.tag-remove-btn');
+      expect(removeButton.getAttribute('aria-label')).toContain('Remove tag test');
     });
   });
 });
