@@ -90,6 +90,11 @@ src/app/
 
 ## Development Process
 
+### File Management Guidelines
+- **Temporary Files**: Use `/tmp/` directory for all temporary files (diff files, temporary outputs, etc.)
+- **No Temporary Files in Project**: Never create temporary files within the project directory
+- **Clean Temporary Files**: Remove temporary files after use when possible
+
 ### TDD Development Workflow (MANDATORY)
 - **Test-Driven Development**: All new features MUST follow TDD methodology
 - **TDD Cycle**: Red (failing test) → Green (minimal code) → Refactor → Repeat
