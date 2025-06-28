@@ -19,6 +19,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Tests use Vitest framework with Angular Testing Utilities
 - **TDD Workflow**: Keep `test:watch` running during development
 
+**Test Command Rules (CRITICAL):**
+- ⚠️ **NEVER add extra options** like `-- run`, `-- ci`, or other flags to test commands
+- ✅ **Use EXACT commands**: `npm test`, `npm run test:watch`, `npm run test:coverage`
+- ❌ **DO NOT use**: `npm test -- run`, `npm run test:watch -- run`, etc.
+- This Angular + Vitest setup requires the exact npm scripts as defined in package.json
+- Adding extra options will cause test failures
+
 **Code Quality:**
 - `npm run lint` - Run ESLint for TypeScript and HTML files
 - `npm run lint:fix` - Run ESLint and auto-fix issues
