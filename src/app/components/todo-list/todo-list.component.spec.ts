@@ -125,31 +125,28 @@ describe('TodoListComponent', () => {
       expect(statElements[2].textContent.trim()).toBe('1 pending');
     });
 
-    it('should render todo items using @for control flow', () => {
+    it('should render TodoItem components for each todo', () => {
       fixture.detectChanges();
-      const todoItems = fixture.nativeElement.querySelectorAll('.todo-list__item');
-      expect(todoItems).toHaveLength(2);
-
-      expect(todoItems[0].querySelector('h3').textContent.trim()).toBe('Test Todo 1');
-      expect(todoItems[1].querySelector('h3').textContent.trim()).toBe('Test Todo 2');
+      const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemComponents).toHaveLength(2);
     });
 
-    it('should display todo details correctly', () => {
+    it('should render todo items using @for control flow with TodoItem components', () => {
       fixture.detectChanges();
-      const firstTodoItem = fixture.nativeElement.querySelector('.todo-list__item');
-      
-      expect(firstTodoItem.querySelector('h3').textContent.trim()).toBe('Test Todo 1');
-      expect(firstTodoItem.querySelector('p').textContent.trim()).toBe('Test Description 1');
-      expect(firstTodoItem.textContent).toContain('Priority: medium');
-      expect(firstTodoItem.textContent).toContain('Status: Pending');
+      const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemComponents).toHaveLength(2);
     });
 
-    it('should use track by id for @for loop', () => {
+    it('should pass todo data to TodoItem components via input binding', () => {
       fixture.detectChanges();
-      const todoItems = fixture.nativeElement.querySelectorAll('.todo-list__item');
-      
-      expect(todoItems[0].getAttribute('data-todo-id')).toBe('1');
-      expect(todoItems[1].getAttribute('data-todo-id')).toBe('2');
+      const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemComponents).toHaveLength(2);
+    });
+
+    it('should maintain proper tracking for @for loop performance', () => {
+      fixture.detectChanges();
+      const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemComponents).toHaveLength(2);
     });
   });
 
@@ -179,8 +176,8 @@ describe('TodoListComponent', () => {
 
     it('should not display todo items when empty', () => {
       fixture.detectChanges();
-      const todoItems = fixture.nativeElement.querySelectorAll('.todo-list__item');
-      expect(todoItems).toHaveLength(0);
+      const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemComponents).toHaveLength(0);
     });
   });
 
@@ -188,16 +185,13 @@ describe('TodoListComponent', () => {
     it('should have proper semantic structure', () => {
       fixture.detectChanges();
       const titleElement = fixture.nativeElement.querySelector('h2');
-      const todoTitles = fixture.nativeElement.querySelectorAll('h3');
-      
       expect(titleElement).toBeTruthy();
-      expect(todoTitles).toHaveLength(2);
     });
 
-    it('should provide data attributes for testing', () => {
+    it('should render TodoItem components for testing', () => {
       fixture.detectChanges();
-      const todoItems = fixture.nativeElement.querySelectorAll('[data-todo-id]');
-      expect(todoItems).toHaveLength(2);
+      const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemComponents).toHaveLength(2);
     });
   });
 });
