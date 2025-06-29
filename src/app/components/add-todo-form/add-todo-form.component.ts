@@ -93,11 +93,12 @@ export class AddTodoFormComponent {
       return null;
     }
 
-    const inputDate = new Date(control.value);
+    // Compare date strings directly to avoid timezone issues
+    const inputDateString = control.value; // Format: YYYY-MM-DD
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
-    if (inputDate < today) {
+    if (inputDateString < todayString) {
       return { pastDate: true };
     }
 
