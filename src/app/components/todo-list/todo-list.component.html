@@ -1,0 +1,31 @@
+<div class="todo-list">
+  <div class="todo-list__header">
+    <h2 class="todo-list__title">Todo List</h2>
+    @if (stats().total > 0) {
+      <div class="todo-list__stats">
+        <span class="todo-list__stat">{{ stats().total }} total</span>
+        <span class="todo-list__stat">{{ stats().completed }} completed</span>
+        <span class="todo-list__stat">{{ stats().pending }} pending</span>
+      </div>
+    }
+  </div>
+
+  <div class="todo-list__content">
+    @if (todos().length === 0) {
+      <div class="todo-list__empty">
+        <p>No todos found. Add your first todo to get started!</p>
+      </div>
+    } @else {
+      <div class="todo-list__items">
+        @for (todo of todos(); track todo.id) {
+          <div class="todo-list__item" [attr.data-todo-id]="todo.id">
+            <h3>{{ todo.title }}</h3>
+            <p>{{ todo.description }}</p>
+            <span>Priority: {{ todo.priority }}</span>
+            <span>Status: {{ todo.completed ? 'Completed' : 'Pending' }}</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
