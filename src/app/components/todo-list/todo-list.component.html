@@ -18,12 +18,7 @@
     } @else {
       <div class="todo-list__items">
         @for (todo of todos(); track todo.id) {
-          <div class="todo-list__item" [attr.data-todo-id]="todo.id">
-            <h3>{{ todo.title }}</h3>
-            <p>{{ todo.description }}</p>
-            <span>Priority: {{ todo.priority }}</span>
-            <span>Status: {{ todo.completed ? 'Completed' : 'Pending' }}</span>
-          </div>
+          <app-todo-item [todo]="todo"></app-todo-item>
         }
       </div>
     }

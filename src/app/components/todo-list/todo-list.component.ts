@@ -8,6 +8,7 @@
 import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TodoService } from '../../services/todo.service';
+import { TodoItemComponent } from '../todo-item/todo-item.component';
 
 /**
  * Standalone component for displaying the complete list of todos.
@@ -18,7 +19,7 @@ import { TodoService } from '../../services/todo.service';
 @Component({
   selector: 'app-todo-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TodoItemComponent],
   templateUrl: './todo-list.component.html',
   styleUrl: './todo-list.component.scss'
 })
