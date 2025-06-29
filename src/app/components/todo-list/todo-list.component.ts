@@ -9,6 +9,8 @@ import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TodoService } from '../../services/todo.service';
 import { TodoItemComponent } from '../todo-item/todo-item.component';
+import { AddTodoFormComponent } from '../add-todo-form/add-todo-form.component';
+import { CreateTodoRequest } from '../../models/todo.model';
 
 /**
  * Standalone component for displaying the complete list of todos.
@@ -19,7 +21,7 @@ import { TodoItemComponent } from '../todo-item/todo-item.component';
 @Component({
   selector: 'app-todo-list',
   standalone: true,
-  imports: [CommonModule, TodoItemComponent],
+  imports: [CommonModule, TodoItemComponent, AddTodoFormComponent],
   templateUrl: './todo-list.component.html',
   styleUrl: './todo-list.component.scss'
 })
@@ -38,4 +40,12 @@ export class TodoListComponent {
    * Computed signal for accessing todo statistics
    */
   public readonly stats = computed(() => this.todoService.stats());
+
+  /**
+   * Handles form submission from AddTodoForm component
+   * @param createRequest - The todo creation request from the form
+   */
+  onAddTodo(createRequest: CreateTodoRequest): void {
+    this.todoService.addTodo(createRequest);
+  }
 }

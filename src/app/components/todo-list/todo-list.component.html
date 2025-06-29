@@ -10,6 +10,10 @@
     }
   </div>
 
+  <div class="todo-list__form">
+    <app-add-todo-form (formSubmit)="onAddTodo($event)"></app-add-todo-form>
+  </div>
+
   <div class="todo-list__content">
     @if (todos().length === 0) {
       <div class="todo-list__empty">

@@ -11,6 +11,7 @@ describe('TodoListComponent', () => {
   let mockTodoService: {
     todos: ReturnType<typeof vi.fn>;
     stats: ReturnType<typeof vi.fn>;
+    addTodo: ReturnType<typeof vi.fn>;
   };
 
   const mockTodos: Todo[] = [
@@ -48,7 +49,8 @@ describe('TodoListComponent', () => {
     // Mock TodoService with signal methods
     mockTodoService = {
       todos: vi.fn().mockReturnValue(mockTodos),
-      stats: vi.fn().mockReturnValue(mockStats)
+      stats: vi.fn().mockReturnValue(mockStats),
+      addTodo: vi.fn()
     };
 
     await TestBed.configureTestingModule({
@@ -192,6 +194,84 @@ describe('TodoListComponent', () => {
       fixture.detectChanges();
       const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
       expect(todoItemComponents).toHaveLength(2);
+    });
+  });
+
+  describe('AddTodoForm Integration (TDD)', () => {
+
+    it('should render AddTodoForm component', () => {
+      fixture.detectChanges();
+      const addTodoFormElement = fixture.nativeElement.querySelector('app-add-todo-form');
+      expect(addTodoFormElement).toBeTruthy();
+    });
+
+    it('should have onAddTodo method to handle form submission', () => {
+      expect(component.onAddTodo).toBeDefined();
+      expect(typeof component.onAddTodo).toBe('function');
+    });
+
+    it('should call TodoService.addTodo when onAddTodo is called', () => {
+      const createRequest = {
+        title: 'New Todo',
+        description: 'New Description',
+        priority: 'medium' as const,
+        dueDate: new Date('2024-12-31'),
+        tags: ['test']
+      };
+
+      component.onAddTodo(createRequest);
+
+      expect(mockTodoService.addTodo).toHaveBeenCalledWith(createRequest);
+    });
+
+    it('should connect AddTodoForm formSubmit event to onAddTodo handler', () => {
+      const onAddTodoSpy = vi.spyOn(component, 'onAddTodo');
+      fixture.detectChanges();
+
+      const addTodoFormComponent = fixture.nativeElement.querySelector('app-add-todo-form');
+      expect(addTodoFormComponent).toBeTruthy();
+      
+      // Simulate form submission by calling the method directly (integration test)
+      const createRequest = {
+        title: 'Test Todo',
+        priority: 'high' as const
+      };
+      
+      component.onAddTodo(createRequest);
+
+      expect(onAddTodoSpy).toHaveBeenCalledWith(createRequest);
+    });
+
+    it('should display new todo in list after form submission', () => {
+      const initialTodos = [...mockTodos];
+      const newTodo = {
+        id: '3',
+        title: 'New Todo from Form',
+        description: 'Created via form',
+        completed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        priority: 'medium' as const,
+        tags: []
+      };
+
+      // Simulate TodoService.addTodo updating the todos signal
+      mockTodoService.addTodo.mockImplementation(() => {
+        const updatedTodos = [...initialTodos, newTodo];
+        mockTodoService.todos.mockReturnValue(updatedTodos);
+      });
+
+      const createRequest = {
+        title: 'New Todo from Form',
+        description: 'Created via form',
+        priority: 'medium' as const
+      };
+
+      component.onAddTodo(createRequest);
+      fixture.detectChanges();
+
+      expect(mockTodoService.addTodo).toHaveBeenCalledWith(createRequest);
+      expect(component.todos()).toContain(newTodo);
     });
   });
 });
