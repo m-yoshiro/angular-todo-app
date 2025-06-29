@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { vi, expect } from 'vitest';
 import { TodoListComponent } from './todo-list.component';
 import { TodoService } from '../../services/todo.service';
-import { Todo } from '../../models/todo.model';
+import { Todo, CreateTodoRequest } from '../../models/todo.model';
 
 describe('TodoListComponent', () => {
   let component: TodoListComponent;
@@ -195,6 +195,82 @@ describe('TodoListComponent', () => {
       const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
       expect(todoItemComponents).toHaveLength(2);
     });
+
+    it('should have proper ARIA labels and roles for accessibility', () => {
+      fixture.detectChanges();
+      
+      // Check main role and aria-labelledby
+      const mainElement = fixture.nativeElement.querySelector('[role="main"]');
+      expect(mainElement).toBeTruthy();
+      expect(mainElement.getAttribute('aria-labelledby')).toBe('todo-list-title');
+      
+      // Check header semantic element
+      const headerElement = fixture.nativeElement.querySelector('header');
+      expect(headerElement).toBeTruthy();
+      
+      // Check form section accessibility
+      const formSection = fixture.nativeElement.querySelector('.todo-list__form');
+      expect(formSection.getAttribute('aria-labelledby')).toBe('add-todo-heading');
+      
+      // Check content section accessibility
+      const contentSection = fixture.nativeElement.querySelector('.todo-list__content');
+      expect(contentSection.getAttribute('aria-labelledby')).toBe('todo-items-heading');
+    });
+
+    it('should have proper heading hierarchy for screen readers', () => {
+      fixture.detectChanges();
+      
+      // Check main heading (h2)
+      const mainHeading = fixture.nativeElement.querySelector('#todo-list-title');
+      expect(mainHeading.tagName.toLowerCase()).toBe('h2');
+      
+      // Check sub-headings (h3) with sr-only class
+      const subHeadings = fixture.nativeElement.querySelectorAll('h3.sr-only');
+      expect(subHeadings).toHaveLength(2);
+      expect(subHeadings[0].textContent.trim()).toBe('Add New Todo');
+      expect(subHeadings[1].textContent.trim()).toBe('Todo Items');
+    });
+
+    it('should have live regions for dynamic content updates', () => {
+      fixture.detectChanges();
+      
+      // Check stats live region
+      const statsElement = fixture.nativeElement.querySelector('.todo-list__stats');
+      expect(statsElement).toBeTruthy();
+      expect(statsElement.getAttribute('role')).toBe('status');
+      expect(statsElement.getAttribute('aria-live')).toBe('polite');
+      
+      // Check empty state live region - need to set up empty state first
+      mockTodoService.todos.mockReturnValue([]);
+      mockTodoService.stats.mockReturnValue({
+        total: 0,
+        completed: 0,
+        pending: 0,
+        completionRate: 0
+      });
+      
+      // Create new component instance with empty state
+      fixture = TestBed.createComponent(TodoListComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      
+      const emptyElement = fixture.nativeElement.querySelector('.todo-list__empty');
+      expect(emptyElement).toBeTruthy();
+      expect(emptyElement.getAttribute('role')).toBe('status');
+      expect(emptyElement.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('should use proper list semantics for todo items', () => {
+      fixture.detectChanges();
+      
+      const listElement = fixture.nativeElement.querySelector('ul.todo-list__items');
+      expect(listElement).toBeTruthy();
+      expect(listElement.getAttribute('role')).toBe('list');
+      expect(listElement.getAttribute('aria-label')).toBe('Todo items list');
+      
+      const listItems = fixture.nativeElement.querySelectorAll('li[role="listitem"]');
+      expect(listItems).toHaveLength(2);
+    });
   });
 
   describe('AddTodoForm Integration (TDD)', () => {
@@ -255,9 +331,18 @@ describe('TodoListComponent', () => {
         tags: []
       };
 
-      // Simulate TodoService.addTodo updating the todos signal
-      mockTodoService.addTodo.mockImplementation(() => {
-        const updatedTodos = [...initialTodos, newTodo];
+      // More explicit mock implementation showing signal update behavior
+      mockTodoService.addTodo.mockImplementation((createRequest: CreateTodoRequest) => {
+        // Simulate the service creating a new todo and updating the signal
+        const createdTodo = {
+          ...newTodo,
+          title: createRequest.title,
+          description: createRequest.description,
+          priority: createRequest.priority
+        };
+        const updatedTodos = [...initialTodos, createdTodo];
+        
+        // Explicitly update the mock to return the new todos array
         mockTodoService.todos.mockReturnValue(updatedTodos);
       });
 
@@ -271,7 +356,111 @@ describe('TodoListComponent', () => {
       fixture.detectChanges();
 
       expect(mockTodoService.addTodo).toHaveBeenCalledWith(createRequest);
-      expect(component.todos()).toContain(newTodo);
+      expect(mockTodoService.addTodo).toHaveBeenCalledTimes(1);
+      
+      // Verify the todos signal was updated with the new todo
+      const currentTodos = component.todos();
+      expect(currentTodos).toHaveLength(3);
+      expect(currentTodos.some(todo => todo.title === 'New Todo from Form')).toBe(true);
+    });
+
+    describe('Edge Cases and Error Handling', () => {
+      it('should handle invalid todo creation request with empty title', () => {
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+          // Intentionally empty for test
+        });
+        
+        const invalidRequest = {
+          title: '',
+          priority: 'medium' as const
+        };
+
+        component.onAddTodo(invalidRequest);
+
+        expect(consoleSpy).toHaveBeenCalledWith('Invalid todo creation request: Title is required');
+        expect(mockTodoService.addTodo).not.toHaveBeenCalled();
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should handle invalid todo creation request with whitespace-only title', () => {
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+          // Intentionally empty for test
+        });
+        
+        const invalidRequest = {
+          title: '   ',
+          priority: 'medium' as const
+        };
+
+        component.onAddTodo(invalidRequest);
+
+        expect(consoleSpy).toHaveBeenCalledWith('Invalid todo creation request: Title is required');
+        expect(mockTodoService.addTodo).not.toHaveBeenCalled();
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should handle null or undefined createRequest', () => {
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+          // Intentionally empty for test
+        });
+        
+        component.onAddTodo(null as unknown as CreateTodoRequest);
+
+        expect(consoleSpy).toHaveBeenCalledWith('Invalid todo creation request: Title is required');
+        expect(mockTodoService.addTodo).not.toHaveBeenCalled();
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should handle TodoService.addTodo throwing an error', () => {
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+          // Intentionally empty for test
+        });
+        const serviceError = new Error('Service unavailable');
+        
+        mockTodoService.addTodo.mockImplementation(() => {
+          throw serviceError;
+        });
+
+        const validRequest = {
+          title: 'Valid Todo',
+          priority: 'medium' as const
+        };
+
+        expect(() => component.onAddTodo(validRequest)).not.toThrow();
+        expect(consoleSpy).toHaveBeenCalledWith('Failed to create todo:', serviceError);
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should handle form submission with minimal required data', () => {
+        const minimalRequest = {
+          title: 'Minimal Todo',
+          priority: 'low' as const
+        };
+
+        component.onAddTodo(minimalRequest);
+
+        expect(mockTodoService.addTodo).toHaveBeenCalledWith(minimalRequest);
+        expect(mockTodoService.addTodo).toHaveBeenCalledTimes(1);
+      });
+
+      it('should handle form submission with all optional fields', () => {
+        const completeRequest = {
+          title: 'Complete Todo',
+          description: 'A detailed description',
+          priority: 'high' as const,
+          dueDate: new Date('2024-12-31'),
+          tags: ['important', 'urgent']
+        };
+
+        component.onAddTodo(completeRequest);
+
+        expect(mockTodoService.addTodo).toHaveBeenCalledWith(completeRequest);
+        expect(mockTodoService.addTodo).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

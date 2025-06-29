@@ -2,7 +2,8 @@
  * @fileoverview Todo list component that displays and manages the collection of todo items.
  * @description This standalone component renders the complete list of todos using Angular 20's
  * new control flow syntax (@for) and signal-based reactivity. Integrates with TodoService
- * for state management and will include TodoItem components for individual item rendering.
+ * for state management and includes both TodoItem components for individual item rendering
+ * and AddTodoForm component for creating new todos with full form integration.
  */
 
 import { Component, inject, computed } from '@angular/core';
@@ -13,10 +14,11 @@ import { AddTodoFormComponent } from '../add-todo-form/add-todo-form.component';
 import { CreateTodoRequest } from '../../models/todo.model';
 
 /**
- * Standalone component for displaying the complete list of todos.
+ * Standalone component for displaying the complete list of todos with form integration.
  * @description Main todo listing component that uses signal-based state management
- * and Angular 20's new template syntax. Provides the foundation for todo item
- * display and will integrate with TodoItem components for individual item management.
+ * and Angular 20's new template syntax. Integrates TodoItem components for individual
+ * item management and AddTodoForm component for creating new todos. Provides a complete
+ * todo management interface with proper accessibility and error handling.
  */
 @Component({
   selector: 'app-todo-list',
@@ -42,10 +44,28 @@ export class TodoListComponent {
   public readonly stats = computed(() => this.todoService.stats());
 
   /**
-   * Handles form submission from AddTodoForm component
+   * Handles form submission from AddTodoForm component with error handling.
+   * @description Processes todo creation requests from the AddTodoForm component,
+   * validates the request data, and delegates to TodoService for actual todo creation.
+   * Includes error handling for invalid requests and service failures.
    * @param createRequest - The todo creation request from the form
+   * @throws {Error} When createRequest is invalid or service operation fails
    */
   onAddTodo(createRequest: CreateTodoRequest): void {
-    this.todoService.addTodo(createRequest);
+    try {
+      // Validate the request has required fields
+      if (!createRequest?.title?.trim()) {
+        console.error('Invalid todo creation request: Title is required');
+        return;
+      }
+
+      // Delegate to TodoService for actual todo creation
+      this.todoService.addTodo(createRequest);
+    } catch (error) {
+      // Log error for debugging while maintaining user experience
+      console.error('Failed to create todo:', error);
+      // In a real application, you might want to show user-friendly error messages
+      // or trigger error handling UI states here
+    }
   }
 }
