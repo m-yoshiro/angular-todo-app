@@ -1,26 +1,34 @@
-<div class="todo-list">
-  <div class="todo-list__header">
-    <h2 class="todo-list__title">Todo List</h2>
+<div class="todo-list" role="main" aria-labelledby="todo-list-title">
+  <header class="todo-list__header">
+    <h2 id="todo-list-title" class="todo-list__title">Todo List</h2>
     @if (stats().total > 0) {
-      <div class="todo-list__stats">
-        <span class="todo-list__stat">{{ stats().total }} total</span>
-        <span class="todo-list__stat">{{ stats().completed }} completed</span>
-        <span class="todo-list__stat">{{ stats().pending }} pending</span>
+      <div class="todo-list__stats" role="status" aria-live="polite" aria-label="Todo statistics">
+        <span class="todo-list__stat" aria-label="Total todos">{{ stats().total }} total</span>
+        <span class="todo-list__stat" aria-label="Completed todos">{{ stats().completed }} completed</span>
+        <span class="todo-list__stat" aria-label="Pending todos">{{ stats().pending }} pending</span>
       </div>
     }
-  </div>
+  </header>
 
-  <div class="todo-list__content">
+  <section class="todo-list__form" aria-labelledby="add-todo-heading">
+    <h3 id="add-todo-heading" class="sr-only">Add New Todo</h3>
+    <app-add-todo-form (formSubmit)="onAddTodo($event)" aria-label="Create new todo form"></app-add-todo-form>
+  </section>
+
+  <section class="todo-list__content" aria-labelledby="todo-items-heading">
+    <h3 id="todo-items-heading" class="sr-only">Todo Items</h3>
     @if (todos().length === 0) {
-      <div class="todo-list__empty">
+      <div class="todo-list__empty" role="status" aria-live="polite">
         <p>No todos found. Add your first todo to get started!</p>
       </div>
     } @else {
-      <div class="todo-list__items">
+      <ul class="todo-list__items" role="list" aria-label="Todo items list">
         @for (todo of todos(); track todo.id) {
-          <app-todo-item [todo]="todo"></app-todo-item>
+          <li role="listitem">
+            <app-todo-item [todo]="todo"></app-todo-item>
+          </li>
         }
-      </div>
+      </ul>
     }
-  </div>
+  </section>
 </div>
