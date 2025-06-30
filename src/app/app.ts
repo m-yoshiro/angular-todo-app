@@ -7,13 +7,13 @@
 
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { TodoListComponent } from './components/todo-list/todo-list.component';
 
 /**
  * Root application component for the Angular 20 Todo application.
  * @description Serves as the main entry point and shell for the entire application.
  * Uses Angular 20's standalone component architecture, eliminating the need for NgModules.
- * Currently implements a simple router outlet structure with potential for future
- * navigation and layout features.
+ * Displays the main TodoListComponent which provides the complete todo management interface.
  * 
  * @example
  * ```typescript
@@ -23,7 +23,7 @@ import { RouterOutlet } from '@angular/router';
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, TodoListComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
