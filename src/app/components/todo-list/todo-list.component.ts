@@ -68,4 +68,34 @@ export class TodoListComponent {
       // or trigger error handling UI states here
     }
   }
+
+  /**
+   * Handles todo deletion with user confirmation and error handling.
+   * @description Processes todo deletion requests with user confirmation dialog,
+   * validates the operation, and delegates to TodoService for actual todo deletion.
+   * Includes error handling for service failures and user feedback.
+   * @param id - The unique identifier of the todo to delete
+   */
+  onDeleteTodo(id: string): void {
+    try {
+      // Show confirmation dialog to prevent accidental deletions
+      const confirmed = confirm('Are you sure you want to delete this todo?');
+      if (!confirmed) {
+        return;
+      }
+
+      // Delegate to TodoService for actual todo deletion
+      const success = this.todoService.deleteTodo(id);
+      
+      if (!success) {
+        console.error('Todo not found or could not be deleted:', id);
+        return;
+      }
+    } catch (error) {
+      // Log error for debugging while maintaining user experience
+      console.error('Failed to delete todo:', error);
+      // In a real application, you might want to show user-friendly error messages
+      // or trigger error handling UI states here
+    }
+  }
 }
