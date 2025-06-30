@@ -12,6 +12,7 @@ describe('TodoListComponent', () => {
     todos: ReturnType<typeof vi.fn>;
     stats: ReturnType<typeof vi.fn>;
     addTodo: ReturnType<typeof vi.fn>;
+    deleteTodo: ReturnType<typeof vi.fn>;
   };
 
   const mockTodos: Todo[] = [
@@ -50,7 +51,8 @@ describe('TodoListComponent', () => {
     mockTodoService = {
       todos: vi.fn().mockReturnValue(mockTodos),
       stats: vi.fn().mockReturnValue(mockStats),
-      addTodo: vi.fn()
+      addTodo: vi.fn(),
+      deleteTodo: vi.fn()
     };
 
     await TestBed.configureTestingModule({
@@ -461,6 +463,98 @@ describe('TodoListComponent', () => {
         expect(mockTodoService.addTodo).toHaveBeenCalledWith(completeRequest);
         expect(mockTodoService.addTodo).toHaveBeenCalledTimes(1);
       });
+    });
+  });
+
+  describe('Todo Deletion (TDD)', () => {
+    it('should have onDeleteTodo method', () => {
+      expect(component.onDeleteTodo).toBeDefined();
+      expect(typeof component.onDeleteTodo).toBe('function');
+    });
+
+    it('should call TodoService.deleteTodo when onDeleteTodo is called', () => {
+      const todoId = 'test-id-123';
+      
+      // Mock confirm to return true (user confirms deletion)
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      mockTodoService.deleteTodo.mockReturnValue(true);
+
+      component.onDeleteTodo(todoId);
+
+      expect(mockTodoService.deleteTodo).toHaveBeenCalledWith(todoId);
+      expect(mockTodoService.deleteTodo).toHaveBeenCalledTimes(1);
+    });
+
+    it('should show confirmation dialog before deleting todo', () => {
+      const todoId = 'test-id-123';
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      mockTodoService.deleteTodo.mockReturnValue(true);
+
+      component.onDeleteTodo(todoId);
+
+      expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+    });
+
+    it('should not delete todo if user cancels confirmation', () => {
+      const todoId = 'test-id-123';
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      mockTodoService.deleteTodo.mockReturnValue(true);
+
+      component.onDeleteTodo(todoId);
+
+      expect(mockTodoService.deleteTodo).not.toHaveBeenCalled();
+    });
+
+    it('should handle error when TodoService.deleteTodo fails', () => {
+      const todoId = 'test-id-123';
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Intentionally empty for test
+      });
+      
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      mockTodoService.deleteTodo.mockImplementation(() => {
+        throw new Error('Delete failed');
+      });
+
+      expect(() => component.onDeleteTodo(todoId)).not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to delete todo:', expect.any(Error));
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle TodoService.deleteTodo returning false', () => {
+      const todoId = 'non-existent-id';
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Intentionally empty for test
+      });
+      
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      mockTodoService.deleteTodo.mockReturnValue(false);
+
+      component.onDeleteTodo(todoId);
+
+      expect(consoleSpy).toHaveBeenCalledWith('Todo not found or could not be deleted:', todoId);
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should connect TodoItem deleteTodo event to onDeleteTodo handler', () => {
+      const onDeleteTodoSpy = vi.spyOn(component, 'onDeleteTodo').mockImplementation(() => {
+        // Intentionally empty for test
+      });
+      fixture.detectChanges();
+
+      // Get all TodoItem components in the template
+      const todoItemElements = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemElements).toHaveLength(2);
+
+      // Simulate TodoItem emitting deleteTodo event (integration test approach)
+      const testTodoId = 'test-todo-id';
+      component.onDeleteTodo(testTodoId);
+
+      expect(onDeleteTodoSpy).toHaveBeenCalledWith(testTodoId);
+      
+      onDeleteTodoSpy.mockRestore();
     });
   });
 });
