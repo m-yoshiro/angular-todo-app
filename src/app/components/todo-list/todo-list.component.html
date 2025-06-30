@@ -25,7 +25,7 @@
       <ul class="todo-list__items" role="list" aria-label="Todo items list">
         @for (todo of todos(); track todo.id) {
           <li role="listitem">
-            <app-todo-item [todo]="todo" (deleteTodo)="onDeleteTodo($event)"></app-todo-item>
+            <app-todo-item [todo]="todo" (toggleComplete)="onToggleTodo($event)" (deleteTodo)="onDeleteTodo($event)"></app-todo-item>
           </li>
         }
       </ul>

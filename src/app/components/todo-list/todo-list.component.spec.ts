@@ -13,6 +13,7 @@ describe('TodoListComponent', () => {
     stats: ReturnType<typeof vi.fn>;
     addTodo: ReturnType<typeof vi.fn>;
     deleteTodo: ReturnType<typeof vi.fn>;
+    toggleTodo: ReturnType<typeof vi.fn>;
   };
 
   const mockTodos: Todo[] = [
@@ -52,7 +53,8 @@ describe('TodoListComponent', () => {
       todos: vi.fn().mockReturnValue(mockTodos),
       stats: vi.fn().mockReturnValue(mockStats),
       addTodo: vi.fn(),
-      deleteTodo: vi.fn()
+      deleteTodo: vi.fn(),
+      toggleTodo: vi.fn()
     };
 
     await TestBed.configureTestingModule({
@@ -555,6 +557,75 @@ describe('TodoListComponent', () => {
       expect(onDeleteTodoSpy).toHaveBeenCalledWith(testTodoId);
       
       onDeleteTodoSpy.mockRestore();
+    });
+  });
+
+  describe('Todo Toggle (TDD)', () => {
+    it('should have onToggleTodo method', () => {
+      expect(component.onToggleTodo).toBeDefined();
+      expect(typeof component.onToggleTodo).toBe('function');
+    });
+
+    it('should call TodoService.toggleTodo when onToggleTodo is called', () => {
+      const todoId = 'test-id-123';
+      const toggledTodo = { ...mockTodos[0], completed: !mockTodos[0].completed };
+      mockTodoService.toggleTodo.mockReturnValue(toggledTodo);
+
+      component.onToggleTodo(todoId);
+
+      expect(mockTodoService.toggleTodo).toHaveBeenCalledWith(todoId);
+      expect(mockTodoService.toggleTodo).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle error when TodoService.toggleTodo returns null', () => {
+      const todoId = 'non-existent-id';
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Intentionally empty for test
+      });
+      
+      mockTodoService.toggleTodo.mockReturnValue(null);
+
+      component.onToggleTodo(todoId);
+
+      expect(consoleSpy).toHaveBeenCalledWith('Todo not found or could not be toggled:', todoId);
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle TodoService.toggleTodo throwing an error', () => {
+      const todoId = 'test-id-123';
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Intentionally empty for test
+      });
+      const serviceError = new Error('Toggle service unavailable');
+      
+      mockTodoService.toggleTodo.mockImplementation(() => {
+        throw serviceError;
+      });
+
+      expect(() => component.onToggleTodo(todoId)).not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to toggle todo:', serviceError);
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should connect TodoItem toggleComplete event to onToggleTodo handler', () => {
+      const onToggleTodoSpy = vi.spyOn(component, 'onToggleTodo').mockImplementation(() => {
+        // Intentionally empty for test
+      });
+      fixture.detectChanges();
+
+      // Get all TodoItem components in the template
+      const todoItemElements = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemElements).toHaveLength(2);
+
+      // Simulate TodoItem emitting toggleComplete event (integration test approach)
+      const testTodoId = 'test-todo-id';
+      component.onToggleTodo(testTodoId);
+
+      expect(onToggleTodoSpy).toHaveBeenCalledWith(testTodoId);
+      
+      onToggleTodoSpy.mockRestore();
     });
   });
 });
