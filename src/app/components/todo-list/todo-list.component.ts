@@ -98,4 +98,28 @@ export class TodoListComponent {
       // or trigger error handling UI states here
     }
   }
+
+  /**
+   * Handles todo completion toggle with error handling.
+   * @description Processes todo toggle requests by delegating to TodoService
+   * for actual todo completion status toggling. Includes error handling for
+   * service failures and invalid todo IDs.
+   * @param id - The unique identifier of the todo to toggle
+   */
+  onToggleTodo(id: string): void {
+    try {
+      // Delegate to TodoService for actual todo toggle
+      const toggledTodo = this.todoService.toggleTodo(id);
+      
+      if (!toggledTodo) {
+        console.error('Todo not found or could not be toggled:', id);
+        return;
+      }
+    } catch (error) {
+      // Log error for debugging while maintaining user experience
+      console.error('Failed to toggle todo:', error);
+      // In a real application, you might want to show user-friendly error messages
+      // or trigger error handling UI states here
+    }
+  }
 }
