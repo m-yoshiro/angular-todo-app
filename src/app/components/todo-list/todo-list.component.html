@@ -1,30 +1,30 @@
-<div class="todo-list" role="main" aria-labelledby="todo-list-title">
-  <header class="todo-list__header">
-    <h2 id="todo-list-title" class="todo-list__title">Todo List</h2>
+<div class="todo-list" role="main" aria-labelledby="todo-list-title" data-testid="todo-list">
+  <header class="todo-list__header" data-testid="todo-list-header">
+    <h2 id="todo-list-title" class="todo-list__title" data-testid="todo-list-title">Todo List</h2>
     @if (stats().total > 0) {
-      <div class="todo-list__stats" role="status" aria-live="polite" aria-label="Todo statistics">
-        <span class="todo-list__stat" aria-label="Total todos">{{ stats().total }} total</span>
-        <span class="todo-list__stat" aria-label="Completed todos">{{ stats().completed }} completed</span>
-        <span class="todo-list__stat" aria-label="Pending todos">{{ stats().pending }} pending</span>
+      <div class="todo-list__stats" role="status" aria-live="polite" aria-label="Todo statistics" data-testid="todo-stats">
+        <span class="todo-list__stat" aria-label="Total todos" data-testid="total-stat">{{ stats().total }} total</span>
+        <span class="todo-list__stat" aria-label="Completed todos" data-testid="completed-stat">{{ stats().completed }} completed</span>
+        <span class="todo-list__stat" aria-label="Pending todos" data-testid="pending-stat">{{ stats().pending }} pending</span>
       </div>
     }
   </header>
 
-  <section class="todo-list__form" aria-labelledby="add-todo-heading">
+  <section class="todo-list__form" aria-labelledby="add-todo-heading" data-testid="todo-form-section">
     <h3 id="add-todo-heading" class="sr-only">Add New Todo</h3>
     <app-add-todo-form (formSubmit)="onAddTodo($event)" aria-label="Create new todo form"></app-add-todo-form>
   </section>
 
-  <section class="todo-list__content" aria-labelledby="todo-items-heading">
+  <section class="todo-list__content" aria-labelledby="todo-items-heading" data-testid="todo-content-section">
     <h3 id="todo-items-heading" class="sr-only">Todo Items</h3>
     @if (todos().length === 0) {
-      <div class="todo-list__empty" role="status" aria-live="polite">
+      <div class="todo-list__empty" role="status" aria-live="polite" data-testid="empty-state">
         <p>No todos found. Add your first todo to get started!</p>
       </div>
     } @else {
-      <ul class="todo-list__items" role="list" aria-label="Todo items list">
+      <ul class="todo-list__items" role="list" aria-label="Todo items list" data-testid="todo-items-list">
         @for (todo of todos(); track todo.id) {
-          <li role="listitem">
+          <li role="listitem" data-testid="todo-list-item">
             <app-todo-item [todo]="todo" (toggleComplete)="onToggleTodo($event)" (deleteTodo)="onDeleteTodo($event)"></app-todo-item>
           </li>
         }

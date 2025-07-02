@@ -5,7 +5,7 @@
  * primitives for optimal performance and reactivity without zones.
  */
 
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, effect } from '@angular/core';
 import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics } from '../models/todo.model';
 
 /**
@@ -35,11 +35,25 @@ import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics } from '../m
   providedIn: 'root'
 })
 export class TodoService {
+  /** Local storage key for persisting todos */
+  private readonly STORAGE_KEY = 'todo-app-todos';
+  
   /** Private signal containing the mutable array of todos */
-  private _todos = signal<Todo[]>([]);
+  private _todos = signal<Todo[]>(this.loadTodosFromStorage());
   
   /** Readonly signal exposing the todo list for external consumption */
   readonly todos = this._todos.asReadonly();
+
+  constructor() {
+    // Set up automatic localStorage persistence using Angular 20 effects
+    effect(() => {
+      const todos = this._todos();
+      // Use setTimeout to avoid SSR issues and ensure proper timing
+      if (typeof window !== 'undefined') {
+        setTimeout(() => this.saveTodosToStorage(todos), 0);
+      }
+    });
+  }
   
   /** 
    * Computed signal providing real-time statistics about todos.
@@ -163,5 +177,51 @@ export class TodoService {
    */
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  }
+
+  /**
+   * Loads todos from localStorage.
+   * @returns Array of todos from storage or empty array if none found
+   */
+  private loadTodosFromStorage(): Todo[] {
+    try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return [];
+      }
+
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (!stored) return [];
+      
+      const todos = JSON.parse(stored) as Todo[];
+      
+      // Convert date strings back to Date objects
+      return todos.map(todo => ({
+        ...todo,
+        createdAt: new Date(todo.createdAt),
+        updatedAt: new Date(todo.updatedAt),
+        dueDate: todo.dueDate ? new Date(todo.dueDate) : undefined
+      }));
+    } catch (error) {
+      console.warn('Failed to load todos from localStorage:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Saves todos to localStorage.
+   * @param todos - Array of todos to save
+   */
+  private saveTodosToStorage(todos: Todo[]): void {
+    try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
+
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(todos));
+    } catch (error) {
+      console.warn('Failed to save todos to localStorage:', error);
+    }
   }
 }

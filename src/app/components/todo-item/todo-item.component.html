@@ -1,6 +1,6 @@
-<div class="todo-item" [class.completed]="todo().completed" [class.editing]="isEditing()" [class]="priorityClass()" [class.overdue]="isOverdue()">
+<div class="todo-item" [class.completed]="todo().completed" [class.editing]="isEditing()" [class]="priorityClass()" [class.overdue]="isOverdue()" data-testid="todo-item">
   @if (!isEditing()) {
-    <div class="todo-content">
+    <div class="todo-content" data-testid="todo-content">
       <div class="todo-header">
         <input 
           type="checkbox" 
@@ -8,16 +8,18 @@
           (change)="onToggleComplete()"
           class="todo-checkbox"
           [id]="'todo-' + todo().id"
+          data-testid="todo-checkbox"
         >
-        <label [for]="'todo-' + todo().id" class="todo-title">
+        <label [for]="'todo-' + todo().id" class="todo-title" data-testid="todo-title">
           {{ todo().title }}
         </label>
-        <div class="todo-actions">
+        <div class="todo-actions" data-testid="todo-actions">
           <button 
             class="btn btn-edit" 
             (click)="onEdit()"
             [disabled]="todo().completed"
             aria-label="Edit todo"
+            data-testid="edit-button"
           >
             ✏️
           </button>
@@ -25,6 +27,7 @@
             class="btn btn-delete" 
             (click)="onDelete()"
             aria-label="Delete todo"
+            data-testid="delete-button"
           >
             🗑️
           </button>
@@ -32,33 +35,33 @@
       </div>
 
       @if (todo().description) {
-        <div class="todo-description">
+        <div class="todo-description" data-testid="todo-description">
           {{ todo().description }}
         </div>
       }
 
-      <div class="todo-meta">
-        <span class="todo-priority" [class]="'priority-' + todo().priority">
+      <div class="todo-meta" data-testid="todo-meta">
+        <span class="todo-priority" [class]="'priority-' + todo().priority" data-testid="todo-priority">
           {{ todo().priority.toUpperCase() }}
         </span>
         
         @if (todo().dueDate) {
-          <span class="todo-due-date" [class.overdue]="isOverdue()">
+          <span class="todo-due-date" [class.overdue]="isOverdue()" data-testid="todo-due-date">
             📅 {{ dueDateFormatted() }}
           </span>
         }
         
         @if (todo().tags?.length) {
-          <div class="todo-tags">
+          <div class="todo-tags" data-testid="todo-tags">
             @for (tag of todo().tags; track tag) {
-              <span class="tag">{{ tag }}</span>
+              <span class="tag" data-testid="todo-tag">{{ tag }}</span>
             }
           </div>
         }
       </div>
     </div>
   } @else {
-    <div class="todo-edit-form">
+    <div class="todo-edit-form" data-testid="todo-edit-form">
       <div class="form-group">
         <label for="edit-title">Title</label>
         <input 
@@ -68,6 +71,7 @@
           [(ngModel)]="editTitle"
           class="form-control"
           placeholder="Enter todo title"
+          data-testid="edit-title-input"
         >
       </div>
       
@@ -79,20 +83,23 @@
           class="form-control"
           placeholder="Enter todo description"
           rows="3"
+          data-testid="edit-description-input"
         ></textarea>
       </div>
       
-      <div class="form-actions">
+      <div class="form-actions" data-testid="edit-form-actions">
         <button 
           class="btn btn-save" 
           (click)="onSave()"
           [disabled]="!editTitle().trim()"
+          data-testid="save-button"
         >
           Save
         </button>
         <button 
           class="btn btn-cancel" 
           (click)="onCancel()"
+          data-testid="cancel-button"
         >
           Cancel
         </button>

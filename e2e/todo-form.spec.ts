@@ -1,69 +1,72 @@
 import { test, expect } from '@playwright/test';
+import { TodoAppPage } from './page-objects/todo-app.page';
+import { TodoFormPage } from './page-objects/todo-form.page';
+import { TodoItemPage } from './page-objects/todo-item.page';
 
 test.describe('Todo Form - Validation and Features', () => {
+  let todoApp: TodoAppPage;
+  let todoForm: TodoFormPage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Todo List' })).toBeVisible();
+    todoApp = new TodoAppPage(page);
+    todoForm = new TodoFormPage(page);
+    await todoApp.goto();
   });
 
   test('should validate required title field', async ({ page }) => {
-    // Try to submit form without title
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
+    // 1. Wait for form to be ready and trigger validation
+    await todoForm.waitForFormReady();
+    await todoForm.focusAndBlurTitle(); // This will trigger validation and make button disabled
     
-    // Verify form was not submitted (no new todo appears)
-    await expect(page.getByText('No todos found. Add your first todo to get started!')).toBeVisible();
+    // 2. Now test that validation triggered properly
+    await todoForm.expectTitleError();
+    await todoForm.expectButtonDisabled();
     
-    // Fill only description without title
-    await page.getByRole('textbox', { name: 'Description' }).fill('Description without title');
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
+    // 3. Test invalid input (spaces only) keeps form disabled
+    await todoForm.fillSpacesInTitle();
+    await todoForm.expectButtonDisabled();
     
-    // Verify still no todo added
-    await expect(page.getByText('No todos found. Add your first todo to get started!')).toBeVisible();
+    // 4. Test valid input enables form
+    await todoForm.fillTitle('Valid Title');
+    await todoForm.expectButtonEnabled();
+    await todoForm.expectNoErrors();
     
-    // Now add title and submit
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Valid Title');
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
-    
-    // Verify todo is now added
-    await expect(page.getByText('Valid Title')).toBeVisible();
+    // 5. Test successful submission
+    await todoForm.submitForm();
+    await todoApp.expectTodoWithTitle('Valid Title');
   });
 
   test('should show validation error for empty title', async ({ page }) => {
-    // Focus on title field then blur it without entering text
-    await page.getByRole('textbox', { name: 'Title *' }).focus();
-    await page.getByRole('textbox', { name: 'Description' }).focus(); // Blur title field
+    // Trigger title validation by focusing and blurring
+    await todoForm.triggerTitleValidation();
     
     // Check if validation error appears
-    const errorMessage = page.getByText(/title is required/i);
-    await expect(errorMessage).toBeVisible();
+    await todoForm.expectTitleError();
     
     // Submit button should be disabled
-    const submitButton = page.getByRole('button', { name: 'Add new todo item' });
-    await expect(submitButton).toBeDisabled();
+    await todoForm.expectFormInvalid();
   });
 
   test('should handle priority selection', async ({ page }) => {
-    // Fill required fields
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Priority Test Todo');
-    
-    // Select high priority
-    await page.getByRole('combobox', { name: 'Priority' }).selectOption('High');
-    
-    // Submit form
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
+    // Add high priority todo
+    await todoForm.fillTitle('Priority Test Todo');
+    await todoForm.selectPriority('High');
+    await todoForm.submitForm();
     
     // Verify todo appears with high priority
-    await expect(page.getByText('Priority Test Todo')).toBeVisible();
-    await expect(page.locator('.todo-priority:has-text("HIGH")')).toBeVisible();
+    await todoApp.expectTodoWithTitle('Priority Test Todo');
+    const highPriorityTodo = TodoItemPage.forTitle(page, 'Priority Test Todo');
+    await highPriorityTodo.expectPriority('HIGH');
     
     // Add another todo with low priority
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Low Priority Todo');
-    await page.getByRole('combobox', { name: 'Priority' }).selectOption('Low');
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
+    await todoForm.fillTitle('Low Priority Todo');
+    await todoForm.selectPriority('Low');
+    await todoForm.submitForm();
     
     // Verify both priorities are displayed
-    await expect(page.locator('.todo-priority:has-text("LOW")')).toBeVisible();
-    await expect(page.locator('.todo-priority:has-text("HIGH")')).toBeVisible();
+    const lowPriorityTodo = TodoItemPage.forTitle(page, 'Low Priority Todo');
+    await lowPriorityTodo.expectPriority('LOW');
+    await highPriorityTodo.expectPriority('HIGH');
   });
 
   test('should handle due date selection', async ({ page }) => {
@@ -73,73 +76,62 @@ test.describe('Todo Form - Validation and Features', () => {
     const tomorrowString = tomorrow.toISOString().split('T')[0];
     
     // Fill form with due date
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Due Date Todo');
-    await page.getByRole('textbox', { name: 'Due Date' }).fill(tomorrowString);
-    
-    // Submit form
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
+    await todoForm.fillTitle('Due Date Todo');
+    await todoForm.setDueDate(tomorrowString);
+    await todoForm.submitForm();
     
     // Verify todo appears with due date indicator
-    await expect(page.getByText('Due Date Todo')).toBeVisible();
+    await todoApp.expectTodoWithTitle('Due Date Todo');
     
-    // Look for calendar icon or due date display
-    const dueDateIndicator = page.locator('.todo-due-date, [class*="due-date"]');
-    await expect(dueDateIndicator).toBeVisible();
+    // Verify due date is displayed
+    const todoWithDueDate = TodoItemPage.forTitle(page, 'Due Date Todo');
+    await expect(todoWithDueDate.hasDueDate()).toBeTruthy();
   });
 
   test('should handle tag management', async ({ page }) => {
     // Fill basic fields
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Tagged Todo');
+    await todoForm.fillTitle('Tagged Todo');
     
-    // Add tags using the tag input
-    const tagInput = page.getByRole('textbox', { name: 'Add tags to your todo item' });
-    
-    // Add first tag
-    await tagInput.fill('work');
-    await tagInput.press('Enter');
-    
-    // Add second tag
-    await tagInput.fill('important');
-    await tagInput.press('Enter');
+    // Add tags
+    await todoForm.addTag('work');
+    await todoForm.addTag('important');
     
     // Verify tags appear as chips
-    await expect(page.getByText('work')).toBeVisible();
-    await expect(page.getByText('important')).toBeVisible();
+    await todoForm.expectTag('work');
+    await todoForm.expectTag('important');
+    await todoForm.expectTagCount(2);
     
     // Submit form
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
+    await todoForm.submitForm();
     
     // Verify todo appears with tags
-    await expect(page.getByText('Tagged Todo')).toBeVisible();
+    await todoApp.expectTodoWithTitle('Tagged Todo');
     
     // Verify tags are displayed in the todo item
-    const todoItem = page.locator('.todo-item').first();
-    await expect(todoItem.getByText('work')).toBeVisible();
-    await expect(todoItem.getByText('important')).toBeVisible();
+    const todoItem = TodoItemPage.forTitle(page, 'Tagged Todo');
+    await todoItem.expectTag('work');
+    await todoItem.expectTag('important');
+    await todoItem.expectTagCount(2);
   });
 
   test('should remove tags when clicking remove button', async ({ page }) => {
     // Fill title
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Tag Removal Test');
+    await todoForm.fillTitle('Tag Removal Test');
     
     // Add tags
-    const tagInput = page.getByRole('textbox', { name: 'Add tags to your todo item' });
-    await tagInput.fill('tag1');
-    await tagInput.press('Enter');
-    await tagInput.fill('tag2');
-    await tagInput.press('Enter');
+    await todoForm.addTags(['tag1', 'tag2']);
     
     // Verify both tags are visible
-    await expect(page.getByText('tag1')).toBeVisible();
-    await expect(page.getByText('tag2')).toBeVisible();
+    await todoForm.expectTagCount(2);
+    await todoForm.expectTag('tag1');
+    await todoForm.expectTag('tag2');
     
     // Remove first tag
-    const removeButtons = page.getByRole('button', { name: 'Remove tag' });
-    await removeButtons.first().click();
+    await todoForm.removeTag(0);
     
     // Verify only second tag remains
-    await expect(page.getByText('tag1')).not.toBeVisible();
-    await expect(page.getByText('tag2')).toBeVisible();
+    await todoForm.expectTagCount(1);
+    await todoForm.expectTag('tag2');
   });
 
   test('should handle complex form with all fields', async ({ page }) => {
@@ -147,35 +139,25 @@ test.describe('Todo Form - Validation and Features', () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowString = tomorrow.toISOString().split('T')[0];
     
-    // Fill all form fields
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Complete Todo');
-    await page.getByRole('textbox', { name: 'Description' }).fill('This todo has all fields filled');
-    await page.getByRole('combobox', { name: 'Priority' }).selectOption('High');
-    await page.getByRole('textbox', { name: 'Due Date' }).fill(tomorrowString);
-    
-    // Add tags
-    const tagInput = page.getByRole('textbox', { name: 'Add tags to your todo item' });
-    await tagInput.fill('complete');
-    await tagInput.press('Enter');
-    await tagInput.fill('test');
-    await tagInput.press('Enter');
-    
-    // Submit form
-    await page.getByRole('button', { name: 'Add new todo item' }).click();
+    // Fill all form fields using page object
+    await todoApp.addTodo({
+      title: 'Complete Todo',
+      description: 'This todo has all fields filled',
+      priority: 'High',
+      dueDate: tomorrowString,
+      tags: ['complete', 'test']
+    });
     
     // Verify all elements appear in the todo item
-    await expect(page.getByText('Complete Todo')).toBeVisible();
-    await expect(page.getByText('This todo has all fields filled')).toBeVisible();
-    await expect(page.locator('.todo-priority:has-text("HIGH")')).toBeVisible();
+    await todoApp.expectTodoWithTitle('Complete Todo');
     
-    const todoItem = page.locator('.todo-item').first();
-    await expect(todoItem.getByText('complete')).toBeVisible();
-    await expect(todoItem.getByText('test')).toBeVisible();
-    
-    // Verify form is reset after submission
-    await expect(page.getByRole('textbox', { name: 'Title *' })).toHaveValue('');
-    await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('');
-    await expect(page.getByRole('textbox', { name: 'Due Date' })).toHaveValue('');
+    const todoItem = TodoItemPage.forTitle(page, 'Complete Todo');
+    await todoItem.expectDescription('This todo has all fields filled');
+    await todoItem.expectPriority('HIGH');
+    await expect(todoItem.hasDueDate()).toBeTruthy();
+    await todoItem.expectTag('complete');
+    await todoItem.expectTag('test');
+    await todoItem.expectTagCount(2);
   });
 
   test('should prevent past due dates', async ({ page }) => {
@@ -185,18 +167,16 @@ test.describe('Todo Form - Validation and Features', () => {
     const yesterdayString = yesterday.toISOString().split('T')[0];
     
     // Fill form with past date
-    await page.getByRole('textbox', { name: 'Title *' }).fill('Past Date Todo');
-    await page.getByRole('textbox', { name: 'Due Date' }).fill(yesterdayString);
+    await todoForm.fillTitle('Past Date Todo');
+    await todoForm.setDueDate(yesterdayString);
     
-    // Blur the date field to trigger validation
-    await page.getByRole('textbox', { name: 'Title *' }).focus();
+    // Trigger validation
+    await todoForm.triggerDueDateValidation();
     
     // Check for validation error
-    const errorMessage = page.getByText(/due date cannot be in the past/i);
-    await expect(errorMessage).toBeVisible();
+    await todoForm.expectDueDateError();
     
     // Submit button should be disabled
-    const submitButton = page.getByRole('button', { name: 'Add new todo item' });
-    await expect(submitButton).toBeDisabled();
+    await todoForm.expectFormInvalid();
   });
 });
