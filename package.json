@@ -19,7 +19,7 @@
     "clean": "rm -rf dist",
     "check": "npm run lint && npm run test",
     "precommit": "npm run lint && npm run test",
-    "validate": "npm run lint && npm run test && npm run build",
+    "validate": "npm run lint && npm run test && npm run e2e && npm run build",
     "e2e": "ng e2e",
     "e2e:dev": "ng e2e --configuration=development",
     "e2e:headed": "npx playwright test --headed",

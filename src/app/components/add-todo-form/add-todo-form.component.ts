@@ -195,6 +195,20 @@ export class AddTodoFormComponent {
   }
 
   /**
+   * Computed getter that determines if the form should be disabled.
+   * @description Returns true if the title field is empty/whitespace or if the form has validation errors,
+   * providing immediate feedback to users about form completeness and validity.
+   * @returns boolean indicating if the submit button should be disabled
+   */
+  get isFormDisabled(): boolean {
+    const titleValue = this.todoForm.get('title')?.value?.trim();
+    const hasEmptyTitle = !titleValue || titleValue.length === 0;
+    const hasValidationErrors = this.todoForm.invalid;
+    
+    return hasEmptyTitle || hasValidationErrors;
+  }
+
+  /**
    * Handles form submission with validation and data transformation.
    * @description Validates the form, creates a properly typed request object,
    * emits the form data, and resets the form to its initial state.

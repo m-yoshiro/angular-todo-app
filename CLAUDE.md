@@ -19,6 +19,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Tests use Vitest framework with Angular Testing Utilities
 - **TDD Workflow**: Keep `test:watch` running during development
 
+**E2E Testing (Playwright):**
+- `npm run e2e` - **PRIMARY**: Run E2E tests with Playwright (Chrome only, fast)
+- `npm run e2e:chrome` - Run E2E tests in Chrome only (same as e2e)
+- `npm run e2e:headed` - Run E2E tests in headed mode (visible browser)
+- `npm run e2e:debug` - Run E2E tests in debug mode with Playwright inspector
+- `npm run e2e:report` - View detailed test results and traces
+- **E2E Tests**: Cover complete user workflows on localhost:4200
+- **Test Files**: `e2e/todo-app.spec.ts`, `e2e/todo-form.spec.ts`, `e2e/todo-stats.spec.ts`
+- **Scope**: Chrome only for speed (can be expanded later)
+
 **Test Command Rules (CRITICAL):**
 - ⚠️ **NEVER add extra options** like `-- run`, `-- ci`, or other flags to test commands
 - ✅ **Use EXACT commands**: `npm test`, `npm run test:watch`, `npm run test:coverage`
@@ -30,7 +40,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` - Run ESLint for TypeScript and HTML files
 - `npm run lint:fix` - Run ESLint and auto-fix issues
 - `npm run check` - Run lint and tests together
-- `npm run validate` - Run full validation (lint + test + build)
+- `npm run validate` - Run full validation (lint + test + e2e + build)
 - ESLint configured with Angular and TypeScript rules
 - Uses angular-eslint, @typescript-eslint packages
 
