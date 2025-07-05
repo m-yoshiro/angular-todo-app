@@ -19,15 +19,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Tests use Vitest framework with Angular Testing Utilities
 - **TDD Workflow**: Keep `test:watch` running during development
 
-**E2E Testing (Playwright):**
+**E2E Testing (Playwright + MCP):**
 - `npm run e2e` - **PRIMARY**: Run E2E tests with Playwright (Chrome only, fast)
 - `npm run e2e:chrome` - Run E2E tests in Chrome only (same as e2e)
 - `npm run e2e:headed` - Run E2E tests in headed mode (visible browser)
 - `npm run e2e:debug` - Run E2E tests in debug mode with Playwright inspector
 - `npm run e2e:report` - View detailed test results and traces
+- **MCP Browser Automation**: Direct browser control for interactive testing
+- **MCP Visual Testing**: Screenshot comparison and visual regression detection
+- **MCP Performance Testing**: Automated performance metrics collection
 - **E2E Tests**: Cover complete user workflows on localhost:4200
 - **Test Files**: `e2e/todo-app.spec.ts`, `e2e/todo-form.spec.ts`, `e2e/todo-stats.spec.ts`
 - **Scope**: Chrome only for speed (can be expanded later)
+
+**MCP Playwright Integration:**
+- **Interactive Testing**: Real-time browser interaction during development
+- **Visual Regression**: Automated screenshot comparison for UI changes
+- **Performance Monitoring**: Collect Core Web Vitals and performance metrics
+- **Multi-browser Testing**: Chrome, Firefox, Safari support via MCP
+- **Debugging**: Enhanced debugging with MCP browser inspection tools
 
 **Test Command Rules (CRITICAL):**
 - ⚠️ **NEVER add extra options** like `-- run`, `-- ci`, or other flags to test commands
@@ -105,6 +115,42 @@ src/app/
 └── styles/         # SCSS variables and globals
 ```
 
+## MCP Tool Integration
+
+This project leverages Claude Code's **Model Context Protocol (MCP)** tools for enhanced development workflows:
+
+### GitHub MCP Integration
+- **Repository Management**: Direct GitHub API access for PRs, issues, and commits
+- **Branch Operations**: Create, switch, and manage branches programmatically
+- **PR Workflows**: Automated PR creation, review, and merge processes
+- **Issue Tracking**: Link commits to issues, update status, manage labels
+- **Code Review**: Automated review requests and approval workflows
+
+### Playwright MCP Integration  
+- **Browser Automation**: Direct browser control for E2E testing
+- **Interactive Testing**: Real-time browser interaction during development
+- **Visual Testing**: Screenshot comparison and visual regression testing
+- **Performance Testing**: Automated performance metrics collection
+- **Multi-browser Support**: Chrome, Firefox, Safari testing capabilities
+
+### MCP Usage Patterns
+```typescript
+// GitHub MCP Examples
+// - Create PRs directly from feature branches
+// - Automatically link commits to issues
+// - Manage review workflows programmatically
+
+// Playwright MCP Examples  
+// - Interactive browser testing during development
+// - Automated visual regression testing
+// - Performance monitoring integration
+```
+
+### When to Use MCP vs npm Commands
+- **Use MCP Tools**: Repository management, PR workflows, interactive browser testing
+- **Use npm Commands**: Build processes, unit testing, local development server
+- **Hybrid Approach**: Combine both for comprehensive development workflows
+
 ## Development Process
 
 ### File Management Guidelines
@@ -119,12 +165,44 @@ src/app/
 - **Component Development**: Test component behavior, inputs, outputs before implementation
 - **Service Development**: Test service methods, signal updates, side effects before coding
 
+### MCP-Enhanced TDD Workflow
+- **GitHub MCP Integration**: Automated issue creation for failing tests
+- **Playwright MCP Integration**: Interactive browser testing during TDD cycles
+- **Visual TDD**: Use MCP browser automation for visual regression testing
+- **Performance TDD**: Integrate performance testing into TDD cycles with MCP
+- **Automated Documentation**: Generate test documentation via GitHub MCP
+
 ### Branch Workflow (MANDATORY)
 - **ALWAYS create a new branch** for each task implementation
 - **NEVER commit directly to main** branch
 - Branch naming: `feature/XX-description` (XX = PR number from roadmap)
 - Follow the detailed roadmap in `plans/detailed-roadmap.md`
 - **TDD Commits**: Include both test and implementation in each commit
+
+### GitHub MCP Workflow Integration
+- **Automated PR Creation**: Use GitHub MCP to create PRs directly from feature branches
+- **Issue Management**: Link commits to issues automatically via MCP
+- **Review Automation**: Request reviews and manage approval workflows
+- **Branch Management**: Create, switch, and manage branches programmatically
+- **Status Updates**: Automatically update issue status based on PR progress
+- **Merge Workflows**: Automated merge processes with conflict resolution
+
+#### GitHub MCP Commands Integration
+```bash
+# Example MCP workflows (handled automatically by Claude Code)
+# - Create PR: GitHub MCP handles PR creation with proper templates
+# - Link Issues: Automatically references issues in commits
+# - Review Requests: Automated reviewer assignment based on code changes
+# - Status Updates: Real-time status updates for linked issues
+# - Merge Automation: Handles merge conflicts and branch cleanup
+```
+
+#### Pull Request Automation
+- **Template Integration**: Auto-populate PR templates with MCP
+- **Reviewer Assignment**: Intelligent reviewer selection based on code changes
+- **Status Checks**: Automated status check integration
+- **Merge Strategies**: Configurable merge strategies (merge, squash, rebase)
+- **Branch Protection**: Enforce branch protection rules via MCP
 
 ### Current Development Status
 - ✅ Phase 1 completed: Project structure, models, basic setup
@@ -200,6 +278,54 @@ interface Todo {
   tags?: string[];
 }
 ```
+
+## MCP Tool Usage Guidelines
+
+### Best Practices for MCP Integration
+
+#### GitHub MCP Usage
+- **PR Creation**: Use GitHub MCP for automated PR creation with proper templates
+- **Issue Management**: Leverage MCP for linking commits to issues automatically
+- **Review Workflows**: Automate review requests and approval processes
+- **Branch Operations**: Use MCP for programmatic branch management
+- **Status Updates**: Real-time status updates for linked issues and PRs
+
+#### Playwright MCP Usage
+- **Interactive Testing**: Use MCP for real-time browser interaction during development
+- **Visual Regression**: Automated screenshot comparison for UI changes
+- **Performance Testing**: Collect Core Web Vitals and performance metrics
+- **Debugging**: Enhanced debugging with MCP browser inspection tools
+- **Multi-browser Testing**: Chrome, Firefox, Safari support via MCP
+
+#### When to Use MCP vs Traditional Commands
+
+**Use GitHub MCP for:**
+- Creating and managing PRs
+- Linking commits to issues
+- Automating review workflows
+- Managing branch operations
+- Status updates and notifications
+
+**Use Playwright MCP for:**
+- Interactive browser testing
+- Visual regression testing
+- Performance monitoring
+- Cross-browser testing
+- Real-time debugging
+
+**Use npm Commands for:**
+- Build processes (`npm run build`)
+- Unit testing (`npm test`)
+- Development server (`npm start`)
+- Linting (`npm run lint`)
+- Local development workflows
+
+#### Troubleshooting MCP Integration
+- **GitHub API Limits**: Monitor API rate limits for GitHub MCP operations
+- **Browser Session Management**: Handle browser session timeouts in Playwright MCP
+- **Network Issues**: Implement retry logic for MCP network operations
+- **Permission Issues**: Ensure proper GitHub permissions for MCP operations
+- **Performance Optimization**: Use MCP efficiently to avoid unnecessary API calls
 
 ## Important Files to Reference
 - `plans/detailed-roadmap.md` - Complete 6-week development plan with PRs
