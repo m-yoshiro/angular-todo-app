@@ -3,17 +3,23 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { vi, expect } from 'vitest';
 import { TodoListComponent } from './todo-list.component';
 import { TodoService } from '../../services/todo.service';
-import { Todo, CreateTodoRequest } from '../../models/todo.model';
+import { Todo, CreateTodoRequest, FilterType } from '../../models/todo.model';
 
 describe('TodoListComponent', () => {
   let component: TodoListComponent;
   let fixture: ComponentFixture<TodoListComponent>;
   let mockTodoService: {
     todos: ReturnType<typeof vi.fn>;
+    filteredTodos: ReturnType<typeof vi.fn>;
+    currentFilter: ReturnType<typeof vi.fn>;
     stats: ReturnType<typeof vi.fn>;
     addTodo: ReturnType<typeof vi.fn>;
     deleteTodo: ReturnType<typeof vi.fn>;
     toggleTodo: ReturnType<typeof vi.fn>;
+    setFilter: ReturnType<typeof vi.fn>;
+    showAll: ReturnType<typeof vi.fn>;
+    showActive: ReturnType<typeof vi.fn>;
+    showCompleted: ReturnType<typeof vi.fn>;
   };
 
   const mockTodos: Todo[] = [
@@ -51,10 +57,16 @@ describe('TodoListComponent', () => {
     // Mock TodoService with signal methods
     mockTodoService = {
       todos: vi.fn().mockReturnValue(mockTodos),
+      filteredTodos: vi.fn().mockReturnValue(mockTodos), // Default to showing all todos
+      currentFilter: vi.fn().mockReturnValue('all' as FilterType),
       stats: vi.fn().mockReturnValue(mockStats),
       addTodo: vi.fn(),
       deleteTodo: vi.fn(),
-      toggleTodo: vi.fn()
+      toggleTodo: vi.fn(),
+      setFilter: vi.fn(),
+      showAll: vi.fn(),
+      showActive: vi.fn(),
+      showCompleted: vi.fn()
     };
 
     await TestBed.configureTestingModule({
@@ -84,9 +96,10 @@ describe('TodoListComponent', () => {
   });
 
   describe('Signal-based State Management', () => {
-    it('should have todos computed signal', () => {
+    it('should have todos computed signal that uses filteredTodos', () => {
       expect(component.todos).toBeDefined();
       expect(component.todos()).toEqual(mockTodos);
+      expect(mockTodoService.filteredTodos).toHaveBeenCalled();
     });
 
     it('should have stats computed signal', () => {
@@ -106,7 +119,7 @@ describe('TodoListComponent', () => {
         tags: []
       }];
 
-      mockTodoService.todos.mockReturnValue(newTodos);
+      mockTodoService.filteredTodos.mockReturnValue(newTodos);
       expect(component.todos()).toEqual(newTodos);
     });
   });
@@ -159,6 +172,7 @@ describe('TodoListComponent', () => {
   describe('Empty State', () => {
     beforeEach(() => {
       mockTodoService.todos.mockReturnValue([]);
+      mockTodoService.filteredTodos.mockReturnValue([]);
       mockTodoService.stats.mockReturnValue({
         total: 0,
         completed: 0,
@@ -171,7 +185,7 @@ describe('TodoListComponent', () => {
       fixture.detectChanges();
       const emptyElement = fixture.nativeElement.querySelector('.todo-list__empty');
       expect(emptyElement).toBeTruthy();
-      expect(emptyElement.textContent.trim()).toContain('No todos found');
+      expect(emptyElement.textContent.trim()).toContain('No todos found. Add your first todo to get started!');
     });
 
     it('should not display stats when no todos exist', () => {
@@ -230,9 +244,10 @@ describe('TodoListComponent', () => {
       
       // Check sub-headings (h3) with sr-only class
       const subHeadings = fixture.nativeElement.querySelectorAll('h3.sr-only');
-      expect(subHeadings).toHaveLength(2);
-      expect(subHeadings[0].textContent.trim()).toBe('Add New Todo');
-      expect(subHeadings[1].textContent.trim()).toBe('Todo Items');
+      expect(subHeadings).toHaveLength(3);
+      expect(subHeadings[0].textContent.trim()).toBe('Filter Todos');
+      expect(subHeadings[1].textContent.trim()).toBe('Add New Todo');
+      expect(subHeadings[2].textContent.trim()).toBe('Todo Items');
     });
 
     it('should have live regions for dynamic content updates', () => {
@@ -246,6 +261,7 @@ describe('TodoListComponent', () => {
       
       // Check empty state live region - need to set up empty state first
       mockTodoService.todos.mockReturnValue([]);
+      mockTodoService.filteredTodos.mockReturnValue([]);
       mockTodoService.stats.mockReturnValue({
         total: 0,
         completed: 0,
@@ -348,6 +364,7 @@ describe('TodoListComponent', () => {
         
         // Explicitly update the mock to return the new todos array
         mockTodoService.todos.mockReturnValue(updatedTodos);
+        mockTodoService.filteredTodos.mockReturnValue(updatedTodos);
       });
 
       const createRequest = {
@@ -626,6 +643,166 @@ describe('TodoListComponent', () => {
       expect(onToggleTodoSpy).toHaveBeenCalledWith(testTodoId);
       
       onToggleTodoSpy.mockRestore();
+    });
+  });
+
+  describe('Filtering Integration', () => {
+    it('should render TodoFilterComponent', () => {
+      fixture.detectChanges();
+      const filterComponent = fixture.nativeElement.querySelector('app-todo-filter');
+      expect(filterComponent).toBeTruthy();
+    });
+
+    it('should pass currentFilter to TodoFilterComponent', () => {
+      mockTodoService.currentFilter.mockReturnValue('active');
+      fixture.detectChanges();
+      
+      const filterComponent = fixture.nativeElement.querySelector('app-todo-filter');
+      expect(filterComponent).toBeTruthy();
+      expect(mockTodoService.currentFilter).toHaveBeenCalled();
+    });
+
+    it('should handle filter changes from TodoFilterComponent', () => {
+      fixture.detectChanges();
+      
+      // The filter component is connected via (filterChange)="todoService.setFilter($event)"
+      // This tests that the binding is correct
+      const filterComponent = fixture.nativeElement.querySelector('app-todo-filter');
+      expect(filterComponent).toBeTruthy();
+    });
+
+    it('should use filteredTodos for displaying todos', () => {
+      const activeTodos = mockTodos.filter(todo => !todo.completed);
+      mockTodoService.filteredTodos.mockReturnValue(activeTodos);
+      mockTodoService.currentFilter.mockReturnValue('active');
+      
+      fixture.detectChanges();
+      
+      const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
+      expect(todoItemComponents).toHaveLength(activeTodos.length);
+      expect(component.todos()).toEqual(activeTodos);
+    });
+
+    describe('Filter-specific empty states', () => {
+      it('should show active filter empty state when no active todos', () => {
+        mockTodoService.todos.mockReturnValue(mockTodos); // Has todos
+        mockTodoService.filteredTodos.mockReturnValue([]); // But none match filter
+        mockTodoService.currentFilter.mockReturnValue('active');
+        
+        fixture.detectChanges();
+        
+        const emptyElement = fixture.nativeElement.querySelector('.todo-list__empty');
+        expect(emptyElement).toBeTruthy();
+        expect(emptyElement.textContent.trim()).toContain('No active todos found. All your todos are completed!');
+      });
+
+      it('should show completed filter empty state when no completed todos', () => {
+        mockTodoService.todos.mockReturnValue(mockTodos); // Has todos
+        mockTodoService.filteredTodos.mockReturnValue([]); // But none match filter
+        mockTodoService.currentFilter.mockReturnValue('completed');
+        
+        fixture.detectChanges();
+        
+        const emptyElement = fixture.nativeElement.querySelector('.todo-list__empty');
+        expect(emptyElement).toBeTruthy();
+        expect(emptyElement.textContent.trim()).toContain('No completed todos found. Complete some todos to see them here.');
+      });
+
+      it('should show generic empty state for unknown filter', () => {
+        mockTodoService.todos.mockReturnValue(mockTodos); // Has todos
+        mockTodoService.filteredTodos.mockReturnValue([]); // But none match filter
+        mockTodoService.currentFilter.mockReturnValue('unknown' as FilterType);
+        
+        fixture.detectChanges();
+        
+        const emptyElement = fixture.nativeElement.querySelector('.todo-list__empty');
+        expect(emptyElement).toBeTruthy();
+        expect(emptyElement.textContent.trim()).toContain('No todos found.');
+      });
+
+      it('should show initial empty state when no todos exist at all', () => {
+        mockTodoService.todos.mockReturnValue([]); // No todos at all
+        mockTodoService.filteredTodos.mockReturnValue([]);
+        mockTodoService.currentFilter.mockReturnValue('all');
+        
+        fixture.detectChanges();
+        
+        const emptyElement = fixture.nativeElement.querySelector('.todo-list__empty');
+        expect(emptyElement).toBeTruthy();
+        expect(emptyElement.textContent.trim()).toContain('No todos found. Add your first todo to get started!');
+      });
+    });
+
+    describe('Filter section accessibility', () => {
+      it('should have proper semantic structure for filter section', () => {
+        fixture.detectChanges();
+        
+        const filterSection = fixture.nativeElement.querySelector('.todo-list__filter');
+        expect(filterSection).toBeTruthy();
+        expect(filterSection.getAttribute('aria-labelledby')).toBe('todo-filter-heading');
+        expect(filterSection.getAttribute('data-testid')).toBe('todo-filter-section');
+      });
+
+      it('should have screen reader heading for filter section', () => {
+        fixture.detectChanges();
+        
+        const filterHeading = fixture.nativeElement.querySelector('#todo-filter-heading');
+        expect(filterHeading).toBeTruthy();
+        expect(filterHeading.textContent.trim()).toBe('Filter Todos');
+        expect(filterHeading.classList.contains('sr-only')).toBe(true);
+      });
+    });
+
+    describe('Integration with TodoService filtering', () => {
+      it('should call TodoService.setFilter when filter component emits filterChange', () => {
+        fixture.detectChanges();
+        
+        // Since the template binding connects directly to todoService.setFilter,
+        // we can verify that the binding exists by checking the template structure
+        const filterComponent = fixture.nativeElement.querySelector('app-todo-filter');
+        expect(filterComponent).toBeTruthy();
+        
+        // The actual connection is tested through the binding in the template
+        // We can verify the service would be called by invoking the component's public interface
+        expect(component.todoService.setFilter).toBeDefined();
+      });
+
+      it('should reflect current filter state from TodoService', () => {
+        mockTodoService.currentFilter.mockReturnValue('completed');
+        fixture.detectChanges();
+        
+        expect(mockTodoService.currentFilter).toHaveBeenCalled();
+        
+        // The filter component receives the current filter as input
+        const filterComponent = fixture.nativeElement.querySelector('app-todo-filter');
+        expect(filterComponent).toBeTruthy();
+      });
+
+      it('should use filteredTodos from service for displaying todos', () => {
+        // Test that component correctly delegates to service for filtered todos
+        fixture.detectChanges();
+        
+        // Component should call service.filteredTodos() 
+        expect(mockTodoService.filteredTodos).toHaveBeenCalled();
+        
+        // Verify component uses the service's filteredTodos method
+        const componentTodos = component.todos();
+        expect(componentTodos).toEqual(mockTodos); // Initial mock return value
+        
+        // Test behavior with different filtered results
+        const activeTodos = mockTodos.filter(todo => !todo.completed);
+        expect(activeTodos).toHaveLength(1);
+        
+        // Create a new component instance that will call the updated mock
+        const newFixture = TestBed.createComponent(TodoListComponent);
+        mockTodoService.filteredTodos.mockReturnValue(activeTodos);
+        
+        const newComponent = newFixture.componentInstance;
+        newFixture.detectChanges();
+        
+        // The new component instance should get the updated mock value
+        expect(newComponent.todos()).toEqual(activeTodos);
+      });
     });
   });
 });

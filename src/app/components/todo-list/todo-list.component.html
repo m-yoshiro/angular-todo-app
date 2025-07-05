@@ -10,6 +10,15 @@
     }
   </header>
 
+  <section class="todo-list__filter" aria-labelledby="todo-filter-heading" data-testid="todo-filter-section">
+    <h3 id="todo-filter-heading" class="sr-only">Filter Todos</h3>
+    <app-todo-filter 
+      [currentFilter]="todoService.currentFilter()" 
+      (filterChange)="todoService.setFilter($event)"
+      aria-label="Filter todo items">
+    </app-todo-filter>
+  </section>
+
   <section class="todo-list__form" aria-labelledby="add-todo-heading" data-testid="todo-form-section">
     <h3 id="add-todo-heading" class="sr-only">Add New Todo</h3>
     <app-add-todo-form (formSubmit)="onAddTodo($event)" aria-label="Create new todo form"></app-add-todo-form>
@@ -19,7 +28,21 @@
     <h3 id="todo-items-heading" class="sr-only">Todo Items</h3>
     @if (todos().length === 0) {
       <div class="todo-list__empty" role="status" aria-live="polite" data-testid="empty-state">
-        <p>No todos found. Add your first todo to get started!</p>
+        @if (todoService.todos().length === 0) {
+          <p>No todos found. Add your first todo to get started!</p>
+        } @else {
+          @switch (todoService.currentFilter()) {
+            @case ('active') {
+              <p>No active todos found. All your todos are completed! 🎉</p>
+            }
+            @case ('completed') {
+              <p>No completed todos found. Complete some todos to see them here.</p>
+            }
+            @default {
+              <p>No todos found.</p>
+            }
+          }
+        }
       </div>
     } @else {
       <ul class="todo-list__items" role="list" aria-label="Todo items list" data-testid="todo-items-list">

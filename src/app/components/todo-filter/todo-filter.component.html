@@ -1,0 +1,28 @@
+<!-- Todo Filter Component -->
+<div class="todo-filter" role="group" aria-label="Todo filter options">
+  <h3 class="filter-heading">Filter Todos</h3>
+  
+  <div class="filter-buttons">
+    @for (option of filterOptions; track option.type) {
+      <button
+        type="button"
+        class="filter-button"
+        [class.active]="isActiveFilter(option.type)"
+        [attr.aria-pressed]="isActiveFilter(option.type)"
+        [attr.aria-describedby]="'filter-' + option.type + '-desc'"
+        (click)="onFilterSelect(option.type)"
+        (keydown)="onKeyDown($event, option.type)">
+        {{ option.label }}
+      </button>
+    }
+  </div>
+  
+  <!-- Screen reader descriptions for filter options -->
+  <div class="sr-only">
+    @for (option of filterOptions; track option.type) {
+      <div [id]="'filter-' + option.type + '-desc'">
+        {{ option.description }}
+      </div>
+    }
+  </div>
+</div>
