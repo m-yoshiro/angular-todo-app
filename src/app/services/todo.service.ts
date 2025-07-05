@@ -6,7 +6,7 @@
  */
 
 import { Injectable, signal, computed, effect } from '@angular/core';
-import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics } from '../models/todo.model';
+import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType } from '../models/todo.model';
 
 /**
  * Service responsible for managing todo items and providing reactive state management.
@@ -43,6 +43,32 @@ export class TodoService {
   
   /** Readonly signal exposing the todo list for external consumption */
   readonly todos = this._todos.asReadonly();
+  
+  /** Private signal for the current filter state */
+  private _currentFilter = signal<FilterType>('all');
+  
+  /** Readonly signal exposing the current filter for external consumption */
+  readonly currentFilter = this._currentFilter.asReadonly();
+  
+  /** 
+   * Computed signal providing filtered todos based on current filter state.
+   * @description Automatically recalculates when todos or filter changes, providing
+   * reactive filtering without manual subscription management.
+   */
+  readonly filteredTodos = computed<Todo[]>(() => {
+    const todos = this._todos();
+    const filter = this._currentFilter();
+    
+    switch (filter) {
+      case 'active':
+        return todos.filter(todo => !todo.completed);
+      case 'completed':
+        return todos.filter(todo => todo.completed);
+      case 'all':
+      default:
+        return todos;
+    }
+  });
 
   constructor() {
     // Set up automatic localStorage persistence using Angular 20 effects
@@ -169,6 +195,38 @@ export class TodoService {
    */
   clearCompleted(): void {
     this._todos.update(todos => todos.filter(todo => !todo.completed));
+  }
+
+  /**
+   * Sets the current filter for displaying todos.
+   * @param filter - The filter type to apply ('all', 'active', 'completed')
+   */
+  setFilter(filter: FilterType): void {
+    this._currentFilter.set(filter);
+  }
+
+  /**
+   * Shows all todos regardless of completion status.
+   * @description Convenience method for setting filter to 'all'
+   */
+  showAll(): void {
+    this.setFilter('all');
+  }
+
+  /**
+   * Shows only active (incomplete) todos.
+   * @description Convenience method for setting filter to 'active'
+   */
+  showActive(): void {
+    this.setFilter('active');
+  }
+
+  /**
+   * Shows only completed todos.
+   * @description Convenience method for setting filter to 'completed'
+   */
+  showCompleted(): void {
+    this.setFilter('completed');
   }
 
   /**

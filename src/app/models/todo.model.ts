@@ -78,6 +78,13 @@ export interface TodoFilter {
 }
 
 /**
+ * Simple filter types for displaying todos by completion status.
+ * @description Used with signal-based filtering to show all todos, only active (incomplete),
+ * or only completed todos. Simpler than the complex TodoFilter interface for basic filtering.
+ */
+export type FilterType = 'all' | 'active' | 'completed';
+
+/**
  * Statistical summary of todo items across various dimensions.
  * @description Computed statistics providing insights into todo completion rates,
  * priority distribution, and overdue items for dashboard and reporting purposes.

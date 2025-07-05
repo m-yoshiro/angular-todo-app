@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common';
 import { TodoService } from '../../services/todo.service';
 import { TodoItemComponent } from '../todo-item/todo-item.component';
 import { AddTodoFormComponent } from '../add-todo-form/add-todo-form.component';
+import { TodoFilterComponent } from '../todo-filter/todo-filter.component';
 import { CreateTodoRequest } from '../../models/todo.model';
 
 /**
@@ -23,7 +24,7 @@ import { CreateTodoRequest } from '../../models/todo.model';
 @Component({
   selector: 'app-todo-list',
   standalone: true,
-  imports: [CommonModule, TodoItemComponent, AddTodoFormComponent],
+  imports: [CommonModule, TodoItemComponent, AddTodoFormComponent, TodoFilterComponent],
   templateUrl: './todo-list.component.html',
   styleUrl: './todo-list.component.scss'
 })
@@ -34,9 +35,9 @@ export class TodoListComponent {
   public readonly todoService = inject(TodoService);
 
   /**
-   * Computed signal for accessing todos reactively
+   * Computed signal for accessing filtered todos reactively
    */
-  public readonly todos = computed(() => this.todoService.todos());
+  public readonly todos = computed(() => this.todoService.filteredTodos());
 
   /**
    * Computed signal for accessing todo statistics

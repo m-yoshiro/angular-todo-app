@@ -261,4 +261,197 @@ describe('TodoService', () => {
       expect(updatedStats.total).toBeGreaterThan(initialStats.total);
     });
   });
+
+  describe('filtering functionality', () => {
+    describe('initial filter state', () => {
+      it('should have default filter set to "all"', () => {
+        expect(service.currentFilter()).toBe('all');
+      });
+
+      it('should have filteredTodos equal to todos initially', () => {
+        service.addTodo({ title: 'Test Todo' });
+        expect(service.filteredTodos()).toEqual(service.todos());
+      });
+    });
+
+    describe('setFilter', () => {
+      it('should set filter to "all"', () => {
+        service.setFilter('all');
+        expect(service.currentFilter()).toBe('all');
+      });
+
+      it('should set filter to "active"', () => {
+        service.setFilter('active');
+        expect(service.currentFilter()).toBe('active');
+      });
+
+      it('should set filter to "completed"', () => {
+        service.setFilter('completed');
+        expect(service.currentFilter()).toBe('completed');
+      });
+    });
+
+    describe('convenience filter methods', () => {
+      it('should set filter to "all" when calling showAll', () => {
+        service.showAll();
+        expect(service.currentFilter()).toBe('all');
+      });
+
+      it('should set filter to "active" when calling showActive', () => {
+        service.showActive();
+        expect(service.currentFilter()).toBe('active');
+      });
+
+      it('should set filter to "completed" when calling showCompleted', () => {
+        service.showCompleted();
+        expect(service.currentFilter()).toBe('completed');
+      });
+    });
+
+    describe('filteredTodos computed signal', () => {
+      beforeEach(() => {
+        // Create test todos: 2 active, 2 completed
+        service.addTodo({ title: 'Active Todo 1' });
+        service.addTodo({ title: 'Active Todo 2' });
+        const todo3 = service.addTodo({ title: 'Completed Todo 1' });
+        const todo4 = service.addTodo({ title: 'Completed Todo 2' });
+        
+        // Mark two as completed
+        service.toggleTodo(todo3.id);
+        service.toggleTodo(todo4.id);
+      });
+
+      it('should return all todos when filter is "all"', () => {
+        service.setFilter('all');
+        const filtered = service.filteredTodos();
+        expect(filtered.length).toBe(4);
+        expect(filtered).toEqual(service.todos());
+      });
+
+      it('should return only active todos when filter is "active"', () => {
+        service.setFilter('active');
+        const filtered = service.filteredTodos();
+        expect(filtered.length).toBe(2);
+        expect(filtered.every(todo => !todo.completed)).toBe(true);
+        expect(filtered.some(todo => todo.title === 'Active Todo 1')).toBe(true);
+        expect(filtered.some(todo => todo.title === 'Active Todo 2')).toBe(true);
+      });
+
+      it('should return only completed todos when filter is "completed"', () => {
+        service.setFilter('completed');
+        const filtered = service.filteredTodos();
+        expect(filtered.length).toBe(2);
+        expect(filtered.every(todo => todo.completed)).toBe(true);
+        expect(filtered.some(todo => todo.title === 'Completed Todo 1')).toBe(true);
+        expect(filtered.some(todo => todo.title === 'Completed Todo 2')).toBe(true);
+      });
+
+      it('should return empty array when no todos match filter', () => {
+        // Clear all todos and add only active ones
+        service.clearCompleted();
+        service.setFilter('completed');
+        const filtered = service.filteredTodos();
+        expect(filtered.length).toBe(0);
+      });
+    });
+
+    describe('filter reactivity', () => {
+      it('should update filteredTodos when filter changes', () => {
+        const todo1 = service.addTodo({ title: 'Active Todo' });
+        const todo2 = service.addTodo({ title: 'Completed Todo' });
+        service.toggleTodo(todo2.id);
+
+        // Start with all todos
+        service.setFilter('all');
+        expect(service.filteredTodos().length).toBe(2);
+
+        // Switch to active only
+        service.setFilter('active');
+        expect(service.filteredTodos().length).toBe(1);
+        expect(service.filteredTodos()[0].id).toBe(todo1.id);
+
+        // Switch to completed only
+        service.setFilter('completed');
+        expect(service.filteredTodos().length).toBe(1);
+        expect(service.filteredTodos()[0].id).toBe(todo2.id);
+      });
+
+      it('should update filteredTodos when todos change', () => {
+        service.setFilter('active');
+        
+        // Add an active todo
+        const todo = service.addTodo({ title: 'New Active Todo' });
+        expect(service.filteredTodos().length).toBe(1);
+
+        // Complete the todo
+        service.toggleTodo(todo.id);
+        expect(service.filteredTodos().length).toBe(0);
+
+        // Switch to completed filter
+        service.setFilter('completed');
+        expect(service.filteredTodos().length).toBe(1);
+      });
+
+      it('should maintain filter state when adding new todos', () => {
+        service.setFilter('active');
+        
+        service.addTodo({ title: 'Active Todo 1' });
+        expect(service.filteredTodos().length).toBe(1);
+
+        service.addTodo({ title: 'Active Todo 2' });
+        expect(service.filteredTodos().length).toBe(2);
+        expect(service.currentFilter()).toBe('active');
+      });
+
+      it('should maintain filter state when deleting todos', () => {
+        const todo1 = service.addTodo({ title: 'Active Todo' });
+        const todo2 = service.addTodo({ title: 'Completed Todo' });
+        service.toggleTodo(todo2.id);
+
+        service.setFilter('active');
+        expect(service.filteredTodos().length).toBe(1);
+
+        service.deleteTodo(todo1.id);
+        expect(service.filteredTodos().length).toBe(0);
+        expect(service.currentFilter()).toBe('active');
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should handle empty todos list for all filters', () => {
+        service.setFilter('all');
+        expect(service.filteredTodos().length).toBe(0);
+
+        service.setFilter('active');
+        expect(service.filteredTodos().length).toBe(0);
+
+        service.setFilter('completed');
+        expect(service.filteredTodos().length).toBe(0);
+      });
+
+      it('should handle default case in filteredTodos switch statement', () => {
+        service.addTodo({ title: 'Test Todo' });
+        
+        // Force an invalid filter state (though this shouldn't happen in normal use)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (service as any)._currentFilter.set('invalid');
+        
+        const filtered = service.filteredTodos();
+        expect(filtered).toEqual(service.todos());
+      });
+
+      it('should update filteredTodos when clearCompleted is called', () => {
+        const todo1 = service.addTodo({ title: 'Active Todo' });
+        const todo2 = service.addTodo({ title: 'Completed Todo' });
+        service.toggleTodo(todo2.id);
+
+        service.setFilter('all');
+        expect(service.filteredTodos().length).toBe(2);
+
+        service.clearCompleted();
+        expect(service.filteredTodos().length).toBe(1);
+        expect(service.filteredTodos()[0].id).toBe(todo1.id);
+      });
+    });
+  });
 });
