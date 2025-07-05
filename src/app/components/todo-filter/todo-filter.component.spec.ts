@@ -76,8 +76,7 @@ describe('TodoFilterComponent', () => {
 
   describe('visual active state', () => {
     it('should apply active class to current filter button', () => {
-      fixture.detectChanges();
-      component.currentFilter = 'active';
+      fixture.componentRef.setInput('currentFilter', 'active');
       fixture.detectChanges();
 
       const buttons = fixture.debugElement.queryAll(By.css('.filter-button'));
@@ -92,15 +91,14 @@ describe('TodoFilterComponent', () => {
 
     it('should update active class when currentFilter changes', () => {
       // Start with 'all'
-      fixture.detectChanges();
-      component.currentFilter = 'all';
+      fixture.componentRef.setInput('currentFilter', 'all');
       fixture.detectChanges();
       
       let buttons = fixture.debugElement.queryAll(By.css('.filter-button'));
       expect(buttons[0].nativeElement.classList.contains('active')).toBe(true);
 
       // Change to 'completed'
-      component.currentFilter = 'completed';
+      fixture.componentRef.setInput('currentFilter', 'completed');
       fixture.detectChanges();
       
       buttons = fixture.debugElement.queryAll(By.css('.filter-button'));
@@ -197,8 +195,7 @@ describe('TodoFilterComponent', () => {
 
   describe('accessibility features', () => {
     it('should have proper ARIA attributes on filter buttons', () => {
-      fixture.detectChanges();
-      component.currentFilter = 'active';
+      fixture.componentRef.setInput('currentFilter', 'active');
       fixture.detectChanges();
       
       const buttons = fixture.debugElement.queryAll(By.css('.filter-button'));
@@ -244,15 +241,14 @@ describe('TodoFilterComponent', () => {
   describe('input property changes', () => {
     it('should update visual state when currentFilter input changes', () => {
       // Start with 'all'
-      fixture.detectChanges();
-      component.currentFilter = 'all';
+      fixture.componentRef.setInput('currentFilter', 'all');
       fixture.detectChanges();
       
       let buttons = fixture.debugElement.queryAll(By.css('.filter-button'));
       expect(buttons[0].nativeElement.classList.contains('active')).toBe(true);
       
       // Change to 'completed' via input property
-      component.currentFilter = 'completed';
+      fixture.componentRef.setInput('currentFilter', 'completed');
       fixture.detectChanges();
       
       buttons = fixture.debugElement.queryAll(By.css('.filter-button'));
@@ -261,8 +257,7 @@ describe('TodoFilterComponent', () => {
     });
 
     it('should update aria-pressed attributes when currentFilter changes', () => {
-      fixture.detectChanges();
-      component.currentFilter = 'completed';
+      fixture.componentRef.setInput('currentFilter', 'completed');
       fixture.detectChanges();
       
       const buttons = fixture.debugElement.queryAll(By.css('.filter-button'));
