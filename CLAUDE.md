@@ -206,6 +206,13 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 - **Component Development**: Test component behavior, inputs, outputs before implementation
 - **Service Development**: Test service methods, signal updates, side effects before coding
 
+### ESLint Quality Gate (MANDATORY)
+- **Before Every Implementation**: Run `npm run lint` to check for existing errors
+- **During Development**: Run `npm run lint:fix` to auto-fix issues
+- **Before Creating PR**: Run `npm run check` (lint + tests) to validate everything
+- **Never Proceed**: If ESLint errors exist, fix them before moving to next step
+- **Quick Fix Workflow**: `npm run lint:fix` → `npm run lint` → fix remaining manually
+
 ### MCP-Enhanced TDD Workflow
 - **GitHub MCP Integration**: Automated issue creation for failing tests
 - **Playwright MCP Integration**: Interactive browser testing during TDD cycles
