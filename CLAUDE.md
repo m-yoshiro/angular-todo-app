@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture Quality Standards
 
 ### Expert Panel Consensus
-Based on code review by Kent Beck, Martin Fowler, and Robert C. Martin:
+Based on expert software architecture review:
 
 #### Critical Architectural Issues
 1. **Single Responsibility Violation**: Components mixing presentation and business logic
