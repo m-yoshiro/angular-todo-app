@@ -2,6 +2,40 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Architecture Quality Standards
+
+### Expert Panel Consensus
+Based on code review by Kent Beck, Martin Fowler, and Robert C. Martin:
+
+#### Critical Architectural Issues
+1. **Single Responsibility Violation**: Components mixing presentation and business logic
+2. **Testability Problems**: Direct dependencies on browser APIs (confirm, localStorage)
+3. **Boundary Violations**: Business logic scattered across components
+
+#### Smart Service, Dumb Component Policy (MANDATORY)
+- **Services**: Own ALL business logic, validation, error handling, side effects
+- **Components**: ONLY presentation logic and event delegation
+- **No Exceptions**: Components must not contain try/catch, validation, or confirmation logic
+
+#### What Components Cannot Do
+- ❌ Input validation or business rule enforcement
+- ❌ Direct calls to browser APIs (`confirm`, `alert`, `localStorage`)
+- ❌ Error handling with try/catch blocks
+- ❌ Console logging for business errors
+- ❌ Data manipulation or transformation logic
+
+#### What Components Should Do
+- ✅ Render data received from services
+- ✅ Delegate user actions to services
+- ✅ Handle UI state and presentation logic only
+- ✅ Emit events for parent components
+
+### Refactoring Priorities
+1. **Move validation logic** from `TodoListComponent.onAddTodo` to `TodoService`
+2. **Abstract confirmation dialogs** behind a service interface for testability
+3. **Move all error handling** to service layer with proper error propagation
+4. **Update component tests** to focus on presentation only
+
 ## Development Commands
 
 **Build & Serve:**
@@ -78,6 +112,13 @@ This is an **Angular 20 TODO application** showcasing modern Angular patterns:
 - Use `inject()` function for dependency injection
 - Follow signal-based state management patterns
 - Use new template control flow syntax
+- **MANDATORY**: Strict separation between presentation and business logic
+
+#### Component Responsibilities
+- **Presentation Only**: Components handle UI rendering and user interaction
+- **Event Delegation**: Components emit events to parent or delegate to services
+- **No Business Logic**: All validation, error handling, and data manipulation in services
+- **Testable Design**: Components should be easily testable without mocking business logic
 
 ### State Management with Signals
 ```typescript
@@ -165,6 +206,13 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 - **Component Development**: Test component behavior, inputs, outputs before implementation
 - **Service Development**: Test service methods, signal updates, side effects before coding
 
+### ESLint Quality Gate (MANDATORY)
+- **Before Every Implementation**: Run `npm run lint` to check for existing errors
+- **During Development**: Run `npm run lint:fix` to auto-fix issues
+- **Before Creating PR**: Run `npm run check` (lint + tests) to validate everything
+- **Never Proceed**: If ESLint errors exist, fix them before moving to next step
+- **Quick Fix Workflow**: `npm run lint:fix` → `npm run lint` → fix remaining manually
+
 ### MCP-Enhanced TDD Workflow
 - **GitHub MCP Integration**: Automated issue creation for failing tests
 - **Playwright MCP Integration**: Interactive browser testing during TDD cycles
@@ -208,8 +256,15 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 - ✅ Phase 1 completed: Project structure, models, basic setup
 - ✅ Phase 2 completed: Core functionality (TodoService, components) using **TDD approach**
 - ✅ ESLint setup completed: Code quality tools configured
+- ⚠️ **ARCHITECTURAL DEBT**: TodoListComponent violates Single Responsibility Principle
 - 🔄 Ready for Phase 3: Advanced features (filtering, persistence, signal forms)
 - 🎯 **TDD Success**: Phase 2 achieved 100% test coverage with comprehensive TDD implementation
+
+### Immediate Architecture Improvements Needed
+1. **Refactor TodoListComponent**: Move business logic to TodoService
+2. **Abstract Browser APIs**: Create confirmation and storage services
+3. **Update Tests**: Separate component and service test responsibilities
+4. **Enforce Boundaries**: Implement strict component/service separation
 
 ### Testing Strategy
 
@@ -225,33 +280,63 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 - **Unit Tests**: Use Angular testing with Vitest (migrated from Karma)
 - **Signal Testing**: Test signal interactions and computed values with TDD approach
 - **Component Testing**: Mock services, test template bindings, test-driven component development
+- **Service Testing**: Test business logic, validation, error handling in services
 - **Vitest Features**: Faster execution, native ESM support, better watch mode for TDD cycles
 - **Coverage Target**: 90%+ (currently achieving 100% statements, 95%+ branches)
 
+#### Testing Separation of Concerns
+- **Component Tests**: Focus on presentation logic, event emission, template rendering
+- **Service Tests**: Focus on business logic, validation, error handling, side effects
+- **Mock Browser APIs**: Abstract `confirm()`, `localStorage`, etc. behind services for testing
+- **No Business Logic in Component Tests**: If component test needs complex mocking, move logic to service
+
 #### TDD Examples for Angular 20
 ```typescript
-// Signal TDD Example - TodoService
+// Service TDD Example - Business Logic Testing
 describe('TodoService', () => {
-  it('should add new todo when calling addTodo', () => {
+  it('should validate todo creation request', () => {
     // Red: Test fails initially
     const service = new TodoService();
-    const newTodo = { title: 'Test Todo', completed: false };
+    const invalidRequest = { title: '', completed: false };
     
-    service.addTodo(newTodo);
+    expect(() => service.addTodo(invalidRequest)).toThrow('Title is required');
+  });
+  
+  it('should handle confirmation for todo deletion', () => {
+    // Red: Test confirmation logic
+    const service = new TodoService();
+    const confirmationService = jasmine.createSpyObj('ConfirmationService', ['confirm']);
     
-    expect(service.todos()).toContain(jasmine.objectContaining(newTodo));
+    service.deleteTodo('123', confirmationService);
+    
+    expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
   });
 });
 
-// Component TDD Example - TodoListComponent
+// Component TDD Example - Presentation Logic Only
 describe('TodoListComponent', () => {
-  it('should display empty state when no todos exist', () => {
+  it('should emit add event when form submits', () => {
     // Red: Write test first
     const fixture = TestBed.createComponent(TodoListComponent);
-    component.todos.set([]);
+    const component = fixture.componentInstance;
+    spyOn(component, 'onAddTodo');
+    
+    const formData = { title: 'Test Todo', completed: false };
+    component.onAddTodo(formData);
+    
+    expect(component.onAddTodo).toHaveBeenCalledWith(formData);
+  });
+  
+  it('should display todos from service', () => {
+    // Red: Test presentation logic
+    const mockTodos = [{ id: '1', title: 'Test', completed: false }];
+    const todoService = jasmine.createSpyObj('TodoService', [], { todos: signal(mockTodos) });
+    
+    const fixture = TestBed.createComponent(TodoListComponent);
+    fixture.componentInstance.todoService = todoService;
     fixture.detectChanges();
     
-    expect(fixture.nativeElement.textContent).toContain('No todos found');
+    expect(fixture.nativeElement.textContent).toContain('Test');
   });
 });
 ```
