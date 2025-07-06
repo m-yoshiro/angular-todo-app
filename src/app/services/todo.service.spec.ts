@@ -1,16 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { vi } from 'vitest';
 import { TodoService } from './todo.service';
+import { ConfirmationService } from './confirmation.service';
 import { CreateTodoRequest, UpdateTodoRequest } from '../models/todo.model';
 
 describe('TodoService', () => {
   let service: TodoService;
+  let confirmationService: ConfirmationService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection()]
     });
     service = TestBed.inject(TodoService);
+    confirmationService = TestBed.inject(ConfirmationService);
   });
 
   it('should be created', () => {
@@ -452,6 +456,221 @@ describe('TodoService', () => {
         expect(service.filteredTodos().length).toBe(1);
         expect(service.filteredTodos()[0].id).toBe(todo1.id);
       });
+    });
+  });
+
+  describe('validateCreateRequest', () => {
+    it('should return valid for correct request', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Todo',
+        description: 'Valid description',
+        priority: 'medium'
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should return invalid for null request', () => {
+      const result = service.validateCreateRequest(null as unknown as CreateTodoRequest);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Request is required');
+    });
+
+    it('should return invalid for undefined request', () => {
+      const result = service.validateCreateRequest(undefined as unknown as CreateTodoRequest);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Request is required');
+    });
+
+    it('should return invalid for empty title', () => {
+      const request: CreateTodoRequest = {
+        title: ''
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Title is required');
+    });
+
+    it('should return invalid for whitespace-only title', () => {
+      const request: CreateTodoRequest = {
+        title: '   '
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Title is required');
+    });
+
+    it('should return invalid for missing title', () => {
+      const request = {} as CreateTodoRequest;
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Title is required');
+    });
+
+    it('should return invalid for title exceeding 200 characters', () => {
+      const request: CreateTodoRequest = {
+        title: 'a'.repeat(201)
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Title cannot exceed 200 characters');
+    });
+
+    it('should return valid for title exactly 200 characters', () => {
+      const request: CreateTodoRequest = {
+        title: 'a'.repeat(200)
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should return invalid for description exceeding 1000 characters', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Title',
+        description: 'a'.repeat(1001)
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Description cannot exceed 1000 characters');
+    });
+
+    it('should return valid for description exactly 1000 characters', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Title',
+        description: 'a'.repeat(1000)
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should return valid for undefined description', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Title',
+        description: undefined
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should return valid for empty description', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Title',
+        description: ''
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should handle all optional fields', () => {
+      const request: CreateTodoRequest = {
+        title: 'Complete Todo',
+        description: 'A complete description',
+        priority: 'high',
+        dueDate: new Date('2024-12-31'),
+        tags: ['work', 'important']
+      };
+
+      const result = service.validateCreateRequest(request);
+
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+  });
+
+  describe('confirmAndDelete', () => {
+    let todo: ReturnType<typeof service.addTodo>;
+
+    beforeEach(() => {
+      todo = service.addTodo({ title: 'Test Todo' });
+    });
+
+    it('should delete todo when user confirms', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+
+      const result = service.confirmAndDelete(todo.id);
+
+      expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+      expect(result).toBe(true);
+      expect(service.getTodoById(todo.id)).toBeUndefined();
+    });
+
+    it('should not delete todo when user cancels', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(false);
+
+      const result = service.confirmAndDelete(todo.id);
+
+      expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+      expect(result).toBe(false);
+      expect(service.getTodoById(todo.id)).toBeDefined();
+    });
+
+    it('should return false for non-existent todo even if user confirms', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+
+      const result = service.confirmAndDelete('non-existent-id');
+
+      expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+      expect(result).toBe(false);
+    });
+
+    it('should not call delete service if user cancels confirmation', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(false);
+      const deleteSpyFunction = vi.spyOn(service, 'deleteTodo');
+
+      service.confirmAndDelete(todo.id);
+
+      expect(deleteSpyFunction).not.toHaveBeenCalled();
+      deleteSpyFunction.mockRestore();
+    });
+
+    it('should call delete service only after user confirms', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+      const deleteSpyFunction = vi.spyOn(service, 'deleteTodo');
+
+      service.confirmAndDelete(todo.id);
+
+      expect(confirmationService.confirm).toHaveBeenCalledBefore(deleteSpyFunction);
+      expect(deleteSpyFunction).toHaveBeenCalledWith(todo.id);
+      deleteSpyFunction.mockRestore();
+    });
+
+    it('should update todos list and stats after successful confirmed deletion', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+      const initialCount = service.todos().length;
+      const initialStats = service.stats();
+
+      const result = service.confirmAndDelete(todo.id);
+
+      expect(result).toBe(true);
+      expect(service.todos().length).toBe(initialCount - 1);
+      expect(service.stats().total).toBe(initialStats.total - 1);
     });
   });
 });

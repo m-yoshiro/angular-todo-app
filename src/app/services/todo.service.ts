@@ -5,8 +5,9 @@
  * primitives for optimal performance and reactivity without zones.
  */
 
-import { Injectable, signal, computed, effect } from '@angular/core';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType, SortType, SortOrder } from '../models/todo.model';
+import { ConfirmationService } from './confirmation.service';
 
 /**
  * Service responsible for managing todo items and providing reactive state management.
@@ -97,6 +98,9 @@ export class TodoService {
     
     return this.sortTodos(filtered, sortKey, sortOrder);
   });
+
+  /** Injected ConfirmationService for user confirmations */
+  private readonly confirmationService = inject(ConfirmationService);
 
   constructor() {
     // Set up automatic localStorage persistence using Angular 20 effects
@@ -279,6 +283,49 @@ export class TodoService {
   toggleSortOrder(): void {
     const currentOrder = this._sortOrder();
     this._sortOrder.set(currentOrder === 'asc' ? 'desc' : 'asc');
+  }
+
+  /**
+   * Validates a todo creation request.
+   * @description Checks if the creation request has all required fields and valid data.
+   * This method abstracts validation logic from components to improve separation of concerns.
+   * @param request - The todo creation request to validate
+   * @returns Validation result with success flag and optional error message
+   */
+  validateCreateRequest(request: CreateTodoRequest): { valid: boolean; error?: string } {
+    if (!request) {
+      return { valid: false, error: 'Request is required' };
+    }
+
+    if (!request.title || !request.title.trim()) {
+      return { valid: false, error: 'Title is required' };
+    }
+
+    if (request.title.trim().length > 200) {
+      return { valid: false, error: 'Title cannot exceed 200 characters' };
+    }
+
+    if (request.description && request.description.length > 1000) {
+      return { valid: false, error: 'Description cannot exceed 1000 characters' };
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Confirms and deletes a todo with user confirmation.
+   * @description Combines user confirmation and todo deletion in a single operation.
+   * This method handles the complete deletion workflow including user confirmation.
+   * @param id - The unique identifier of the todo to delete
+   * @returns True if user confirmed and todo was deleted, false otherwise
+   */
+  confirmAndDelete(id: string): boolean {
+    const confirmed = this.confirmationService.confirm('Are you sure you want to delete this todo?');
+    if (!confirmed) {
+      return false;
+    }
+
+    return this.deleteTodo(id);
   }
 
   /**
