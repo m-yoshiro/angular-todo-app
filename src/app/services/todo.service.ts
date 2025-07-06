@@ -2,11 +2,14 @@
  * @fileoverview Core todo management service using Angular 20 signals for reactive state management.
  * @description This service provides comprehensive todo item management with signal-based reactive state,
  * automatic statistics computation, and full CRUD operations. Built using Angular 20's new signal
- * primitives for optimal performance and reactivity without zones.
+ * primitives for optimal performance and reactivity without zones. Integrated with ValidationService
+ * and ErrorHandlerService for proper business logic separation.
  */
 
-import { Injectable, signal, computed, effect } from '@angular/core';
-import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType, SortType, SortOrder } from '../models/todo.model';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
+import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType, SortType, SortOrder, ServiceResult } from '../models/todo.model';
+import { ValidationService } from './validation.service';
+import { ErrorHandlerService } from './error-handler.service';
 
 /**
  * Service responsible for managing todo items and providing reactive state management.
@@ -40,6 +43,12 @@ export class TodoService {
   
   /** Priority values for consistent priority sorting */
   private readonly PRIORITY_VALUES = { low: 1, medium: 2, high: 3 } as const;
+
+  /** Injected validation service for business logic validation */
+  private readonly validationService = inject(ValidationService);
+  
+  /** Injected error handler service for structured error handling */
+  private readonly errorHandler = inject(ErrorHandlerService);
   
   /** Private signal containing the mutable array of todos */
   private _todos = signal<Todo[]>(this.loadTodosFromStorage());
@@ -140,25 +149,52 @@ export class TodoService {
   });
 
   /**
-   * Creates a new todo item and adds it to the collection.
+   * Creates a new todo item and adds it to the collection with validation.
    * @param request - The todo creation request containing title and optional metadata
-   * @returns The newly created todo item with generated ID and timestamps
+   * @returns ServiceResult indicating success/failure with todo data or validation errors
    */
-  addTodo(request: CreateTodoRequest): Todo {
-    const newTodo: Todo = {
-      id: this.generateId(),
-      title: request.title,
-      description: request.description,
-      completed: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      priority: request.priority || 'medium',
-      dueDate: request.dueDate,
-      tags: request.tags || []
-    };
+  addTodo(request: CreateTodoRequest): ServiceResult<Todo> {
+    const context = 'TodoService.addTodo';
+    
+    try {
+      // Validate the request using ValidationService
+      const validationResult = this.validationService.validateCreateRequest(request);
+      
+      if (!validationResult.isValid) {
+        this.errorHandler.handleValidationError(validationResult.errors, context);
+        return {
+          success: false,
+          errors: validationResult.errors
+        };
+      }
 
-    this._todos.update(todos => [...todos, newTodo]);
-    return newTodo;
+      // Create the new todo item
+      const newTodo: Todo = {
+        id: this.generateId(),
+        title: request.title.trim(), // Trim whitespace as per validation
+        description: request.description,
+        completed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        priority: request.priority || 'medium',
+        dueDate: request.dueDate,
+        tags: request.tags || []
+      };
+
+      // Update the todos signal
+      this._todos.update(todos => [...todos, newTodo]);
+      
+      return {
+        success: true,
+        data: newTodo
+      };
+    } catch (error) {
+      this.errorHandler.handleError(error, context);
+      return {
+        success: false,
+        errors: ['Failed to create todo']
+      };
+    }
   }
 
   /**
@@ -187,25 +223,87 @@ export class TodoService {
   }
 
   /**
-   * Toggles the completion status of a todo item.
+   * Toggles the completion status of a todo item with error handling.
    * @param id - The unique identifier of the todo to toggle
-   * @returns The updated todo item or null if not found
+   * @returns ServiceResult indicating success/failure with updated todo data
    */
-  toggleTodo(id: string): Todo | null {
-    const todo = this.getTodoById(id);
-    if (!todo) return null;
-    return this.updateTodo(id, { completed: !todo.completed });
+  toggleTodo(id: string): ServiceResult<Todo> {
+    const context = 'TodoService.toggleTodo';
+    
+    try {
+      const todo = this.getTodoById(id);
+      if (!todo) {
+        this.errorHandler.handleTodoNotFoundError(id, context);
+        return {
+          success: false,
+          errors: [`Todo with ID "${id}" not found`]
+        };
+      }
+      
+      const updatedTodo = this.updateTodo(id, { completed: !todo.completed });
+      if (!updatedTodo) {
+        this.errorHandler.handleTodoNotFoundError(id, context);
+        return {
+          success: false,
+          errors: [`Failed to toggle todo with ID "${id}"`]
+        };
+      }
+      
+      return {
+        success: true,
+        data: updatedTodo
+      };
+    } catch (error) {
+      this.errorHandler.handleError(error, context);
+      return {
+        success: false,
+        errors: ['Failed to toggle todo']
+      };
+    }
   }
 
   /**
-   * Removes a todo item from the collection.
+   * Removes a todo item from the collection with error handling.
    * @param id - The unique identifier of the todo to delete
-   * @returns True if the todo was found and deleted, false otherwise
+   * @returns ServiceResult indicating success/failure of the deletion
    */
-  deleteTodo(id: string): boolean {
-    const initialLength = this._todos().length;
-    this._todos.update(todos => todos.filter(todo => todo.id !== id));
-    return this._todos().length < initialLength;
+  deleteTodo(id: string): ServiceResult<boolean> {
+    const context = 'TodoService.deleteTodo';
+    
+    try {
+      const initialLength = this._todos().length;
+      const todoExists = this.getTodoById(id);
+      
+      if (!todoExists) {
+        this.errorHandler.handleTodoNotFoundError(id, context);
+        return {
+          success: false,
+          errors: [`Todo with ID "${id}" not found`]
+        };
+      }
+      
+      this._todos.update(todos => todos.filter(todo => todo.id !== id));
+      const wasDeleted = this._todos().length < initialLength;
+      
+      if (!wasDeleted) {
+        this.errorHandler.handleError(`Failed to delete todo with ID: ${id}`, context);
+        return {
+          success: false,
+          errors: [`Failed to delete todo with ID "${id}"`]
+        };
+      }
+      
+      return {
+        success: true,
+        data: true
+      };
+    } catch (error) {
+      this.errorHandler.handleError(error, context);
+      return {
+        success: false,
+        errors: ['Failed to delete todo']
+      };
+    }
   }
 
   /**

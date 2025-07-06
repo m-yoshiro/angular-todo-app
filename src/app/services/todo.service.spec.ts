@@ -37,43 +37,52 @@ describe('TodoService', () => {
   describe('addTodo', () => {
     it('should add a new todo with required fields', () => {
       const request: CreateTodoRequest = {
-        title: 'Test Todo'
+        title: 'Test Todo',
+        priority: 'medium'
       };
 
-      const todo = service.addTodo(request);
+      const result = service.addTodo(request);
 
-      expect(todo.id).toBeDefined();
-      expect(todo.title).toBe('Test Todo');
-      expect(todo.completed).toBe(false);
-      expect(todo.priority).toBe('medium');
-      expect(todo.createdAt).toBeInstanceOf(Date);
-      expect(todo.updatedAt).toBeInstanceOf(Date);
-      expect(todo.tags).toEqual([]);
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      expect(result.data!.id).toBeDefined();
+      expect(result.data!.title).toBe('Test Todo');
+      expect(result.data!.completed).toBe(false);
+      expect(result.data!.priority).toBe('medium');
+      expect(result.data!.createdAt).toBeInstanceOf(Date);
+      expect(result.data!.updatedAt).toBeInstanceOf(Date);
+      expect(result.data!.tags).toEqual([]);
       expect(service.todos().length).toBe(1);
     });
 
     it('should add todo with all optional fields', () => {
-      const dueDate = new Date('2024-12-31');
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
       const request: CreateTodoRequest = {
         title: 'Complete Todo',
         description: 'A complete todo with all fields',
         priority: 'high',
-        dueDate: dueDate,
+        dueDate: futureDate,
         tags: ['work', 'urgent']
       };
 
-      const todo = service.addTodo(request);
+      const result = service.addTodo(request);
 
-      expect(todo.title).toBe('Complete Todo');
-      expect(todo.description).toBe('A complete todo with all fields');
-      expect(todo.priority).toBe('high');
-      expect(todo.dueDate).toEqual(dueDate);
-      expect(todo.tags).toEqual(['work', 'urgent']);
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      expect(result.data!.title).toBe('Complete Todo');
+      expect(result.data!.description).toBe('A complete todo with all fields');
+      expect(result.data!.priority).toBe('high');
+      expect(result.data!.dueDate).toEqual(futureDate);
+      expect(result.data!.tags).toEqual(['work', 'urgent']);
     });
 
     it('should update stats when adding todos', () => {
-      service.addTodo({ title: 'Todo 1', priority: 'low' });
-      service.addTodo({ title: 'Todo 2', priority: 'high' });
+      const result1 = service.addTodo({ title: 'Todo 1', priority: 'low' });
+      const result2 = service.addTodo({ title: 'Todo 2', priority: 'high' });
+
+      expect(result1.success).toBe(true);
+      expect(result2.success).toBe(true);
 
       const stats = service.stats();
       expect(stats.total).toBe(2);
@@ -82,11 +91,40 @@ describe('TodoService', () => {
       expect(stats.byPriority.low).toBe(1);
       expect(stats.byPriority.high).toBe(1);
     });
+
+    it('should handle validation errors', () => {
+      const request: CreateTodoRequest = {
+        title: '',
+        priority: 'medium'
+      };
+
+      const result = service.addTodo(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('Title is required');
+      expect(service.todos().length).toBe(0);
+    });
+
+    it('should handle validation errors for invalid priority', () => {
+      const request = {
+        title: 'Valid Title',
+        priority: 'invalid'
+      } as unknown as CreateTodoRequest;
+
+      const result = service.addTodo(request);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toContain('Priority must be low, medium, or high');
+      expect(service.todos().length).toBe(0);
+    });
   });
 
   describe('updateTodo', () => {
     it('should update existing todo', () => {
-      const todo = service.addTodo({ title: 'Original Title' });
+      const result = service.addTodo({ title: 'Original Title', priority: 'medium' });
+      expect(result.success).toBe(true);
+      const todo = result.data!;
+      
       const updateRequest: UpdateTodoRequest = {
         title: 'Updated Title',
         description: 'Updated description',

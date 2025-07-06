@@ -121,3 +121,22 @@ export interface SortConfig {
   key: SortType;
   order: SortOrder;
 }
+
+/**
+ * Result of validation operations.
+ * @description Contains validation status and any error messages for failed validations.
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+/**
+ * Result of service operations.
+ * @description Contains operation status and result data or error information.
+ */
+export interface ServiceResult<T = any> {
+  success: boolean;
+  data?: T;
+  errors?: string[];
+}
