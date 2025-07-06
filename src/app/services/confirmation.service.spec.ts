@@ -23,7 +23,7 @@ describe('ConfirmationService', () => {
   });
 
   describe('confirmDelete', () => {
-    let confirmSpy: any;
+    let confirmSpy: vi.SpyInstance;
 
     beforeEach(() => {
       confirmSpy = vi.spyOn(window, 'confirm');
@@ -147,7 +147,7 @@ describe('ConfirmationService', () => {
       it('should handle missing window object gracefully', async () => {
         // Mock window as undefined (SSR scenario)
         const originalWindow = global.window;
-        (global as any).window = undefined;
+        (global as Record<string, unknown>).window = undefined;
 
         const result = await service.confirmDelete();
 
@@ -160,7 +160,7 @@ describe('ConfirmationService', () => {
       it('should handle missing confirm function gracefully', async () => {
         // Mock confirm as undefined
         const originalConfirm = window.confirm;
-        (window as any).confirm = undefined;
+        (window as Record<string, unknown>).confirm = undefined;
 
         const result = await service.confirmDelete();
 
@@ -173,7 +173,7 @@ describe('ConfirmationService', () => {
   });
 
   describe('confirmDeleteTodo', () => {
-    let confirmSpy: any;
+    let confirmSpy: vi.SpyInstance;
 
     beforeEach(() => {
       confirmSpy = vi.spyOn(window, 'confirm');

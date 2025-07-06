@@ -135,7 +135,7 @@ export interface ValidationResult {
  * Result of service operations.
  * @description Contains operation status and result data or error information.
  */
-export interface ServiceResult<T = any> {
+export interface ServiceResult<T = unknown> {
   success: boolean;
   data?: T;
   errors?: string[];

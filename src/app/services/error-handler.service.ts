@@ -35,10 +35,10 @@ export class ErrorHandlerService {
 
   /**
    * Handles general errors with context information.
-   * @param error - The error that occurred (Error object, string, or any type)
+   * @param error - The error that occurred (Error object, string, or unknown type)
    * @param context - The context where the error occurred (e.g., 'TodoService.addTodo')
    */
-  handleError(error: any, context: string): void {
+  handleError(error: unknown, context: string): void {
     try {
       const processedContext = this.processContext(context);
       const processedError = this.processError(error);
@@ -101,7 +101,7 @@ export class ErrorHandlerService {
    * @param error - The raw error
    * @returns Processed error for logging
    */
-  private processError(error: any): any {
+  private processError(error: unknown): string {
     if (error === null || error === undefined) {
       return 'Unknown error occurred';
     }
@@ -148,7 +148,7 @@ export class ErrorHandlerService {
    * @param errorType - The type of error (e.g., 'Error', 'Validation Error')
    * @param message - The error message or object
    */
-  private logError(context: string, errorType: string, message: any): void {
+  private logError(context: string, errorType: string, message: string): void {
     if (this.isConsoleAvailable()) {
       console.error(`[${context}] ${errorType}:`, message);
     }
@@ -159,7 +159,7 @@ export class ErrorHandlerService {
    * @param message - The message to log
    * @param data - Additional data to log
    */
-  private safeLog(message: string, data?: any): void {
+  private safeLog(message: string, data?: unknown): void {
     try {
       if (this.isConsoleAvailable()) {
         console.error(message, data);

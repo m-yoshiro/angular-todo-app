@@ -23,7 +23,7 @@ describe('ErrorHandlerService', () => {
   });
 
   describe('handleError', () => {
-    let consoleSpy: any;
+    let consoleSpy: vi.SpyInstance;
 
     beforeEach(() => {
       consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
@@ -162,7 +162,7 @@ describe('ErrorHandlerService', () => {
       it('should handle missing console gracefully', () => {
         // Mock console as undefined (some environments)
         const originalConsole = global.console;
-        (global as any).console = undefined;
+        (global as Record<string, unknown>).console = undefined;
 
         const error = new Error('Test error');
         const context = 'Test context';
@@ -177,7 +177,7 @@ describe('ErrorHandlerService', () => {
       it('should handle missing console.error gracefully', () => {
         // Mock console.error as undefined
         const originalError = console.error;
-        (console as any).error = undefined;
+        (console as Record<string, unknown>).error = undefined;
 
         const error = new Error('Test error');
         const context = 'Test context';
@@ -192,7 +192,7 @@ describe('ErrorHandlerService', () => {
   });
 
   describe('handleValidationError', () => {
-    let consoleSpy: any;
+    let consoleSpy: vi.SpyInstance;
 
     beforeEach(() => {
       consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
@@ -260,7 +260,7 @@ describe('ErrorHandlerService', () => {
   });
 
   describe('handleTodoNotFoundError', () => {
-    let consoleSpy: any;
+    let consoleSpy: vi.SpyInstance;
 
     beforeEach(() => {
       consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
@@ -309,7 +309,7 @@ describe('ErrorHandlerService', () => {
   });
 
   describe('Context Processing', () => {
-    let consoleSpy: any;
+    let consoleSpy: vi.SpyInstance;
 
     beforeEach(() => {
       consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
@@ -350,7 +350,7 @@ describe('ErrorHandlerService', () => {
     });
 
     it('should support various error types for future logging integration', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { /* empty */ });
       
       // Test different error types that might be logged to external services
       const networkError = new Error('Network request failed');

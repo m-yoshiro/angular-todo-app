@@ -109,7 +109,7 @@ export class ValidationService {
       return;
     }
 
-    if (!this.VALID_PRIORITIES.includes(priority as any)) {
+    if (!this.VALID_PRIORITIES.includes(priority as Priority)) {
       errors.push('Priority must be low, medium, or high');
     }
   }
