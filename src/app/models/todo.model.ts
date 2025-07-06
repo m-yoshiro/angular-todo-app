@@ -100,3 +100,24 @@ export interface TodoStatistics {
     high: number;
   };
 }
+
+/**
+ * Available sorting criteria for todo items.
+ * @description Defines the different properties by which todos can be sorted.
+ */
+export type SortType = 'date' | 'priority' | 'title';
+
+/**
+ * Sort order direction.
+ * @description Defines whether sorting should be ascending or descending.
+ */
+export type SortOrder = 'asc' | 'desc';
+
+/**
+ * Complete sorting configuration.
+ * @description Combines sort criteria and direction for comprehensive sorting control.
+ */
+export interface SortConfig {
+  key: SortType;
+  order: SortOrder;
+}

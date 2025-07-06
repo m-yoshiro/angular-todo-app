@@ -6,7 +6,7 @@
  */
 
 import { Injectable, signal, computed, effect } from '@angular/core';
-import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType } from '../models/todo.model';
+import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType, SortType, SortOrder } from '../models/todo.model';
 
 /**
  * Service responsible for managing todo items and providing reactive state management.
@@ -38,6 +38,9 @@ export class TodoService {
   /** Local storage key for persisting todos */
   private readonly STORAGE_KEY = 'todo-app-todos';
   
+  /** Priority values for consistent priority sorting */
+  private readonly PRIORITY_VALUES = { low: 1, medium: 2, high: 3 } as const;
+  
   /** Private signal containing the mutable array of todos */
   private _todos = signal<Todo[]>(this.loadTodosFromStorage());
   
@@ -49,6 +52,18 @@ export class TodoService {
   
   /** Readonly signal exposing the current filter for external consumption */
   readonly currentFilter = this._currentFilter.asReadonly();
+  
+  /** Private signal for the current sort key */
+  private _sortKey = signal<SortType>('date');
+  
+  /** Readonly signal exposing the current sort key for external consumption */
+  readonly sortKey = this._sortKey.asReadonly();
+  
+  /** Private signal for the current sort order */
+  private _sortOrder = signal<SortOrder>('desc');
+  
+  /** Readonly signal exposing the current sort order for external consumption */
+  readonly sortOrder = this._sortOrder.asReadonly();
   
   /** 
    * Computed signal providing filtered todos based on current filter state.
@@ -68,6 +83,19 @@ export class TodoService {
       default:
         return todos;
     }
+  });
+
+  /** 
+   * Computed signal providing sorted and filtered todos.
+   * @description Combines filtering and sorting in a reactive computed signal.
+   * Automatically recalculates when todos, filter, sort key, or sort order changes.
+   */
+  readonly sortedAndFilteredTodos = computed<Todo[]>(() => {
+    const filtered = this.filteredTodos();
+    const sortKey = this._sortKey();
+    const sortOrder = this._sortOrder();
+    
+    return this.sortTodos(filtered, sortKey, sortOrder);
   });
 
   constructor() {
@@ -227,6 +255,59 @@ export class TodoService {
    */
   showCompleted(): void {
     this.setFilter('completed');
+  }
+
+  /**
+   * Sets the current sort key for displaying todos.
+   * @param sortKey - The sort criteria to apply ('date', 'priority', 'title')
+   */
+  setSortKey(sortKey: SortType): void {
+    this._sortKey.set(sortKey);
+  }
+
+  /**
+   * Sets the current sort order for displaying todos.
+   * @param sortOrder - The sort direction to apply ('asc', 'desc')
+   */
+  setSortOrder(sortOrder: SortOrder): void {
+    this._sortOrder.set(sortOrder);
+  }
+
+  /**
+   * Toggles the current sort order between ascending and descending.
+   */
+  toggleSortOrder(): void {
+    const currentOrder = this._sortOrder();
+    this._sortOrder.set(currentOrder === 'asc' ? 'desc' : 'asc');
+  }
+
+  /**
+   * Sorts an array of todos based on the specified criteria and order.
+   * @param todos - Array of todos to sort
+   * @param sortKey - The sorting criteria
+   * @param sortOrder - The sorting direction
+   * @returns New sorted array of todos
+   */
+  private sortTodos(todos: Todo[], sortKey: SortType, sortOrder: SortOrder): Todo[] {
+    return [...todos].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortKey) {
+        case 'date':
+          comparison = a.createdAt.getTime() - b.createdAt.getTime();
+          break;
+        case 'priority':
+          comparison = this.PRIORITY_VALUES[a.priority] - this.PRIORITY_VALUES[b.priority];
+          break;
+        case 'title':
+          comparison = a.title.localeCompare(b.title);
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
   }
 
   /**

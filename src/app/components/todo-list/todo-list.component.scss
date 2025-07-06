@@ -39,6 +39,15 @@
     color: #6b7280;
   }
 
+  &__filter,
+  &__sort {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+  }
+
   &__content {
     min-height: 200px;
   }

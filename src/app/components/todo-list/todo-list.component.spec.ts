@@ -11,12 +11,18 @@ describe('TodoListComponent', () => {
   let mockTodoService: {
     todos: ReturnType<typeof vi.fn>;
     filteredTodos: ReturnType<typeof vi.fn>;
+    sortedAndFilteredTodos: ReturnType<typeof vi.fn>;
     currentFilter: ReturnType<typeof vi.fn>;
+    sortKey: ReturnType<typeof vi.fn>;
+    sortOrder: ReturnType<typeof vi.fn>;
     stats: ReturnType<typeof vi.fn>;
     addTodo: ReturnType<typeof vi.fn>;
     deleteTodo: ReturnType<typeof vi.fn>;
     toggleTodo: ReturnType<typeof vi.fn>;
     setFilter: ReturnType<typeof vi.fn>;
+    setSortKey: ReturnType<typeof vi.fn>;
+    setSortOrder: ReturnType<typeof vi.fn>;
+    toggleSortOrder: ReturnType<typeof vi.fn>;
     showAll: ReturnType<typeof vi.fn>;
     showActive: ReturnType<typeof vi.fn>;
     showCompleted: ReturnType<typeof vi.fn>;
@@ -57,13 +63,19 @@ describe('TodoListComponent', () => {
     // Mock TodoService with signal methods
     mockTodoService = {
       todos: vi.fn().mockReturnValue(mockTodos),
-      filteredTodos: vi.fn().mockReturnValue(mockTodos), // Default to showing all todos
+      filteredTodos: vi.fn().mockReturnValue(mockTodos),
+      sortedAndFilteredTodos: vi.fn().mockReturnValue(mockTodos), // Default to showing all todos
       currentFilter: vi.fn().mockReturnValue('all' as FilterType),
+      sortKey: vi.fn().mockReturnValue('date'),
+      sortOrder: vi.fn().mockReturnValue('desc'),
       stats: vi.fn().mockReturnValue(mockStats),
       addTodo: vi.fn(),
       deleteTodo: vi.fn(),
       toggleTodo: vi.fn(),
       setFilter: vi.fn(),
+      setSortKey: vi.fn(),
+      setSortOrder: vi.fn(),
+      toggleSortOrder: vi.fn(),
       showAll: vi.fn(),
       showActive: vi.fn(),
       showCompleted: vi.fn()
@@ -96,10 +108,10 @@ describe('TodoListComponent', () => {
   });
 
   describe('Signal-based State Management', () => {
-    it('should have todos computed signal that uses filteredTodos', () => {
+    it('should have todos computed signal that uses sortedAndFilteredTodos', () => {
       expect(component.todos).toBeDefined();
       expect(component.todos()).toEqual(mockTodos);
-      expect(mockTodoService.filteredTodos).toHaveBeenCalled();
+      expect(mockTodoService.sortedAndFilteredTodos).toHaveBeenCalled();
     });
 
     it('should have stats computed signal', () => {
@@ -119,7 +131,7 @@ describe('TodoListComponent', () => {
         tags: []
       }];
 
-      mockTodoService.filteredTodos.mockReturnValue(newTodos);
+      mockTodoService.sortedAndFilteredTodos.mockReturnValue(newTodos);
       expect(component.todos()).toEqual(newTodos);
     });
   });
@@ -173,6 +185,7 @@ describe('TodoListComponent', () => {
     beforeEach(() => {
       mockTodoService.todos.mockReturnValue([]);
       mockTodoService.filteredTodos.mockReturnValue([]);
+      mockTodoService.sortedAndFilteredTodos.mockReturnValue([]);
       mockTodoService.stats.mockReturnValue({
         total: 0,
         completed: 0,
@@ -244,10 +257,11 @@ describe('TodoListComponent', () => {
       
       // Check sub-headings (h3) with sr-only class
       const subHeadings = fixture.nativeElement.querySelectorAll('h3.sr-only');
-      expect(subHeadings).toHaveLength(3);
+      expect(subHeadings).toHaveLength(4);
       expect(subHeadings[0].textContent.trim()).toBe('Filter Todos');
-      expect(subHeadings[1].textContent.trim()).toBe('Add New Todo');
-      expect(subHeadings[2].textContent.trim()).toBe('Todo Items');
+      expect(subHeadings[1].textContent.trim()).toBe('Sort Todos');
+      expect(subHeadings[2].textContent.trim()).toBe('Add New Todo');
+      expect(subHeadings[3].textContent.trim()).toBe('Todo Items');
     });
 
     it('should have live regions for dynamic content updates', () => {
@@ -261,7 +275,7 @@ describe('TodoListComponent', () => {
       
       // Check empty state live region - need to set up empty state first
       mockTodoService.todos.mockReturnValue([]);
-      mockTodoService.filteredTodos.mockReturnValue([]);
+      mockTodoService.sortedAndFilteredTodos.mockReturnValue([]);
       mockTodoService.stats.mockReturnValue({
         total: 0,
         completed: 0,
@@ -364,7 +378,7 @@ describe('TodoListComponent', () => {
         
         // Explicitly update the mock to return the new todos array
         mockTodoService.todos.mockReturnValue(updatedTodos);
-        mockTodoService.filteredTodos.mockReturnValue(updatedTodos);
+        mockTodoService.sortedAndFilteredTodos.mockReturnValue(updatedTodos);
       });
 
       const createRequest = {
@@ -671,9 +685,9 @@ describe('TodoListComponent', () => {
       expect(filterComponent).toBeTruthy();
     });
 
-    it('should use filteredTodos for displaying todos', () => {
+    it('should use sortedAndFilteredTodos for displaying todos', () => {
       const activeTodos = mockTodos.filter(todo => !todo.completed);
-      mockTodoService.filteredTodos.mockReturnValue(activeTodos);
+      mockTodoService.sortedAndFilteredTodos.mockReturnValue(activeTodos);
       mockTodoService.currentFilter.mockReturnValue('active');
       
       fixture.detectChanges();
@@ -686,7 +700,7 @@ describe('TodoListComponent', () => {
     describe('Filter-specific empty states', () => {
       it('should show active filter empty state when no active todos', () => {
         mockTodoService.todos.mockReturnValue(mockTodos); // Has todos
-        mockTodoService.filteredTodos.mockReturnValue([]); // But none match filter
+        mockTodoService.sortedAndFilteredTodos.mockReturnValue([]); // But none match filter
         mockTodoService.currentFilter.mockReturnValue('active');
         
         fixture.detectChanges();
@@ -698,7 +712,7 @@ describe('TodoListComponent', () => {
 
       it('should show completed filter empty state when no completed todos', () => {
         mockTodoService.todos.mockReturnValue(mockTodos); // Has todos
-        mockTodoService.filteredTodos.mockReturnValue([]); // But none match filter
+        mockTodoService.sortedAndFilteredTodos.mockReturnValue([]); // But none match filter
         mockTodoService.currentFilter.mockReturnValue('completed');
         
         fixture.detectChanges();
@@ -710,7 +724,7 @@ describe('TodoListComponent', () => {
 
       it('should show generic empty state for unknown filter', () => {
         mockTodoService.todos.mockReturnValue(mockTodos); // Has todos
-        mockTodoService.filteredTodos.mockReturnValue([]); // But none match filter
+        mockTodoService.sortedAndFilteredTodos.mockReturnValue([]); // But none match filter
         mockTodoService.currentFilter.mockReturnValue('unknown' as FilterType);
         
         fixture.detectChanges();
@@ -722,7 +736,7 @@ describe('TodoListComponent', () => {
 
       it('should show initial empty state when no todos exist at all', () => {
         mockTodoService.todos.mockReturnValue([]); // No todos at all
-        mockTodoService.filteredTodos.mockReturnValue([]);
+        mockTodoService.sortedAndFilteredTodos.mockReturnValue([]);
         mockTodoService.currentFilter.mockReturnValue('all');
         
         fixture.detectChanges();
@@ -778,14 +792,14 @@ describe('TodoListComponent', () => {
         expect(filterComponent).toBeTruthy();
       });
 
-      it('should use filteredTodos from service for displaying todos', () => {
-        // Test that component correctly delegates to service for filtered todos
+      it('should use sortedAndFilteredTodos from service for displaying todos', () => {
+        // Test that component correctly delegates to service for sorted and filtered todos
         fixture.detectChanges();
         
-        // Component should call service.filteredTodos() 
-        expect(mockTodoService.filteredTodos).toHaveBeenCalled();
+        // Component should call service.sortedAndFilteredTodos() 
+        expect(mockTodoService.sortedAndFilteredTodos).toHaveBeenCalled();
         
-        // Verify component uses the service's filteredTodos method
+        // Verify component uses the service's sortedAndFilteredTodos method
         const componentTodos = component.todos();
         expect(componentTodos).toEqual(mockTodos); // Initial mock return value
         
@@ -795,7 +809,7 @@ describe('TodoListComponent', () => {
         
         // Create a new component instance that will call the updated mock
         const newFixture = TestBed.createComponent(TodoListComponent);
-        mockTodoService.filteredTodos.mockReturnValue(activeTodos);
+        mockTodoService.sortedAndFilteredTodos.mockReturnValue(activeTodos);
         
         const newComponent = newFixture.componentInstance;
         newFixture.detectChanges();

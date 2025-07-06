@@ -19,6 +19,17 @@
     </app-todo-filter>
   </section>
 
+  <section class="todo-list__sort" aria-labelledby="todo-sort-heading" data-testid="todo-sort-section">
+    <h3 id="todo-sort-heading" class="sr-only">Sort Todos</h3>
+    <app-todo-sort
+      [currentSortKey]="todoService.sortKey()"
+      [currentSortOrder]="todoService.sortOrder()"
+      (sortKeyChange)="todoService.setSortKey($event)"
+      (sortOrderChange)="todoService.setSortOrder($event)"
+      aria-label="Sort todo items">
+    </app-todo-sort>
+  </section>
+
   <section class="todo-list__form" aria-labelledby="add-todo-heading" data-testid="todo-form-section">
     <h3 id="add-todo-heading" class="sr-only">Add New Todo</h3>
     <app-add-todo-form (formSubmit)="onAddTodo($event)" aria-label="Create new todo form"></app-add-todo-form>
