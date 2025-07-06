@@ -1,0 +1,55 @@
+<!-- Todo Sort Component -->
+<div class="todo-sort" role="group" aria-label="Todo sort options">
+  <h3 class="sort-heading">Sort Todos</h3>
+  
+  <div class="sort-controls">
+    <!-- Sort Key Selection -->
+    <div class="sort-keys">
+      <label for="sort-select" class="sort-label">Sort by:</label>
+      <select 
+        id="sort-select"
+        class="sort-select"
+        [value]="currentSortKey"
+        (change)="onSortSelectChange($event)"
+        [attr.aria-describedby]="'sort-select-desc'">
+        @for (option of sortOptions; track option.type) {
+          <option [value]="option.type">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Sort Order Toggle -->
+    <button
+      type="button"
+      class="sort-order-toggle"
+      [attr.aria-label]="getSortOrderLabel()"
+      [attr.aria-pressed]="currentSortOrder === 'desc'"
+      [attr.aria-describedby]="'sort-order-desc'"
+      (click)="onSortOrderToggle()"
+      (keydown)="onSortOrderKeyDown($event)"
+      data-testid="sort-order-toggle">
+      <span class="sort-icon" aria-hidden="true">{{ getSortOrderIcon() }}</span>
+      <span class="sort-order-text sr-only">{{ getSortOrderLabel() }}</span>
+    </button>
+  </div>
+
+  <!-- Current sort status for screen readers -->
+  <div class="sort-status sr-only" role="status" aria-live="polite" data-testid="sort-status">
+    Sorting by {{ currentSortKey }} in {{ currentSortOrder === 'asc' ? 'ascending' : 'descending' }} order
+  </div>
+  
+  <!-- Screen reader descriptions -->
+  <div class="sr-only">
+    <div id="sort-select-desc">
+      Choose how to sort your todo items
+    </div>
+    <div id="sort-order-desc">
+      Toggle between ascending and descending sort order
+    </div>
+    @for (option of sortOptions; track option.type) {
+      <div [id]="'sort-' + option.type + '-desc'">
+        {{ option.description }}
+      </div>
+    }
+  </div>
+</div>

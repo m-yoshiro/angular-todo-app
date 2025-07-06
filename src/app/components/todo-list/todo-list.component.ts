@@ -12,6 +12,7 @@ import { TodoService } from '../../services/todo.service';
 import { TodoItemComponent } from '../todo-item/todo-item.component';
 import { AddTodoFormComponent } from '../add-todo-form/add-todo-form.component';
 import { TodoFilterComponent } from '../todo-filter/todo-filter.component';
+import { TodoSortComponent } from '../todo-sort/todo-sort.component';
 import { CreateTodoRequest } from '../../models/todo.model';
 
 /**
@@ -24,7 +25,7 @@ import { CreateTodoRequest } from '../../models/todo.model';
 @Component({
   selector: 'app-todo-list',
   standalone: true,
-  imports: [CommonModule, TodoItemComponent, AddTodoFormComponent, TodoFilterComponent],
+  imports: [CommonModule, TodoItemComponent, AddTodoFormComponent, TodoFilterComponent, TodoSortComponent],
   templateUrl: './todo-list.component.html',
   styleUrl: './todo-list.component.scss'
 })
@@ -35,9 +36,9 @@ export class TodoListComponent {
   public readonly todoService = inject(TodoService);
 
   /**
-   * Computed signal for accessing filtered todos reactively
+   * Computed signal for accessing sorted and filtered todos reactively
    */
-  public readonly todos = computed(() => this.todoService.filteredTodos());
+  public readonly todos = computed(() => this.todoService.sortedAndFilteredTodos());
 
   /**
    * Computed signal for accessing todo statistics
