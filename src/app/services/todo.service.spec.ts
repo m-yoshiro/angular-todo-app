@@ -673,4 +673,340 @@ describe('TodoService', () => {
       expect(service.stats().total).toBe(initialStats.total - 1);
     });
   });
+
+  describe('user feedback signals and message management', () => {
+    it('should initialize feedback signals with default values', () => {
+      expect(service.errorMessage()).toBeNull();
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should set and clear error messages', () => {
+      service.setErrorMessage('Test error');
+      expect(service.errorMessage()).toBe('Test error');
+      expect(service.successMessage()).toBeNull(); // Should clear success message
+
+      service.clearMessages();
+      expect(service.errorMessage()).toBeNull();
+      expect(service.successMessage()).toBeNull();
+    });
+
+    it('should set and clear success messages', () => {
+      service.setSuccessMessage('Test success');
+      expect(service.successMessage()).toBe('Test success');
+      expect(service.errorMessage()).toBeNull(); // Should clear error message
+
+      service.clearMessages();
+      expect(service.errorMessage()).toBeNull();
+      expect(service.successMessage()).toBeNull();
+    });
+
+    it('should set loading state', () => {
+      service.setLoading(true);
+      expect(service.isLoading()).toBe(true);
+
+      service.setLoading(false);
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should clear success message when setting error message', () => {
+      service.setSuccessMessage('Success message');
+      service.setErrorMessage('Error message');
+      
+      expect(service.errorMessage()).toBe('Error message');
+      expect(service.successMessage()).toBeNull();
+    });
+
+    it('should clear error message when setting success message', () => {
+      service.setErrorMessage('Error message');
+      service.setSuccessMessage('Success message');
+      
+      expect(service.successMessage()).toBe('Success message');
+      expect(service.errorMessage()).toBeNull();
+    });
+  });
+
+  describe('addTodoWithValidation', () => {
+    it('should create todo successfully with valid request', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Todo',
+        description: 'Valid description',
+        priority: 'high'
+      };
+
+      const result = service.addTodoWithValidation(request);
+
+      expect(result.success).toBe(true);
+      expect(result.todo).toBeDefined();
+      expect(result.todo!.title).toBe('Valid Todo');
+      expect(result.error).toBeUndefined();
+      expect(service.successMessage()).toBe('Todo created successfully');
+      expect(service.errorMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+      expect(service.todos().length).toBe(1);
+    });
+
+    it('should fail validation with empty title', () => {
+      const request: CreateTodoRequest = {
+        title: ''
+      };
+
+      const result = service.addTodoWithValidation(request);
+
+      expect(result.success).toBe(false);
+      expect(result.todo).toBeUndefined();
+      expect(result.error).toBe('Title is required');
+      expect(service.errorMessage()).toBe('Title is required');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+      expect(service.todos().length).toBe(0);
+    });
+
+    it('should fail validation with title too long', () => {
+      const request: CreateTodoRequest = {
+        title: 'a'.repeat(201)
+      };
+
+      const result = service.addTodoWithValidation(request);
+
+      expect(result.success).toBe(false);
+      expect(result.todo).toBeUndefined();
+      expect(result.error).toBe('Title cannot exceed 200 characters');
+      expect(service.errorMessage()).toBe('Title cannot exceed 200 characters');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+      expect(service.todos().length).toBe(0);
+    });
+
+    it('should fail validation with description too long', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Title',
+        description: 'a'.repeat(1001)
+      };
+
+      const result = service.addTodoWithValidation(request);
+
+      expect(result.success).toBe(false);
+      expect(result.todo).toBeUndefined();
+      expect(result.error).toBe('Description cannot exceed 1000 characters');
+      expect(service.errorMessage()).toBe('Description cannot exceed 1000 characters');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+      expect(service.todos().length).toBe(0);
+    });
+
+    it('should clear messages before processing', () => {
+      service.setErrorMessage('Previous error');
+      service.setSuccessMessage('Previous success');
+
+      const request: CreateTodoRequest = {
+        title: 'Valid Todo'
+      };
+
+      service.addTodoWithValidation(request);
+
+      expect(service.successMessage()).toBe('Todo created successfully');
+      expect(service.errorMessage()).toBeNull();
+    });
+
+    it('should handle exception during todo creation', () => {
+      const request: CreateTodoRequest = {
+        title: 'Valid Todo'
+      };
+
+      // Mock addTodo to throw an error
+      const originalAddTodo = service.addTodo;
+      service.addTodo = vi.fn().mockImplementation(() => {
+        throw new Error('Simulated error');
+      });
+
+      const result = service.addTodoWithValidation(request);
+
+      expect(result.success).toBe(false);
+      expect(result.todo).toBeUndefined();
+      expect(result.error).toBe('Failed to create todo. Please try again.');
+      expect(service.errorMessage()).toBe('Failed to create todo. Please try again.');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+
+      // Restore original method
+      service.addTodo = originalAddTodo;
+    });
+  });
+
+  describe('toggleTodoSafely', () => {
+    let todo: ReturnType<typeof service.addTodo>;
+
+    beforeEach(() => {
+      todo = service.addTodo({ title: 'Test Todo' });
+    });
+
+    it('should toggle todo successfully', () => {
+      const result = service.toggleTodoSafely(todo.id);
+
+      expect(result.success).toBe(true);
+      expect(result.todo).toBeDefined();
+      expect(result.todo!.completed).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(service.successMessage()).toBe('Todo marked as completed');
+      expect(service.errorMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should toggle todo from completed to active', () => {
+      service.toggleTodo(todo.id); // First toggle to completed
+      
+      const result = service.toggleTodoSafely(todo.id);
+
+      expect(result.success).toBe(true);
+      expect(result.todo).toBeDefined();
+      expect(result.todo!.completed).toBe(false);
+      expect(result.error).toBeUndefined();
+      expect(service.successMessage()).toBe('Todo marked as active');
+      expect(service.errorMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should fail when todo does not exist', () => {
+      const result = service.toggleTodoSafely('non-existent-id');
+
+      expect(result.success).toBe(false);
+      expect(result.todo).toBeUndefined();
+      expect(result.error).toBe('Todo not found or could not be toggled');
+      expect(service.errorMessage()).toBe('Todo not found or could not be toggled');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should clear messages before processing', () => {
+      service.setErrorMessage('Previous error');
+      service.setSuccessMessage('Previous success');
+
+      service.toggleTodoSafely(todo.id);
+
+      expect(service.successMessage()).toBe('Todo marked as completed');
+      expect(service.errorMessage()).toBeNull();
+    });
+
+    it('should handle exception during todo toggle', () => {
+      // Mock toggleTodo to throw an error
+      const originalToggleTodo = service.toggleTodo;
+      service.toggleTodo = vi.fn().mockImplementation(() => {
+        throw new Error('Simulated error');
+      });
+
+      const result = service.toggleTodoSafely(todo.id);
+
+      expect(result.success).toBe(false);
+      expect(result.todo).toBeUndefined();
+      expect(result.error).toBe('Failed to toggle todo. Please try again.');
+      expect(service.errorMessage()).toBe('Failed to toggle todo. Please try again.');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+
+      // Restore original method
+      service.toggleTodo = originalToggleTodo;
+    });
+  });
+
+  describe('deleteTodoWithConfirmation', () => {
+    let todo: ReturnType<typeof service.addTodo>;
+
+    beforeEach(() => {
+      todo = service.addTodo({ title: 'Test Todo' });
+    });
+
+    it('should delete todo successfully when user confirms', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+
+      const result = service.deleteTodoWithConfirmation(todo.id);
+
+      expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+      expect(result.success).toBe(true);
+      expect(result.confirmed).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(service.successMessage()).toBe('Todo deleted successfully');
+      expect(service.errorMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+      expect(service.getTodoById(todo.id)).toBeUndefined();
+    });
+
+    it('should not delete todo when user cancels', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(false);
+
+      const result = service.deleteTodoWithConfirmation(todo.id);
+
+      expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+      expect(result.success).toBe(false);
+      expect(result.confirmed).toBe(false);
+      expect(result.error).toBeUndefined();
+      expect(service.errorMessage()).toBeNull(); // Should clear messages on cancellation
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+      expect(service.getTodoById(todo.id)).toBeDefined(); // Todo should still exist
+    });
+
+    it('should fail when todo does not exist even if user confirms', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+
+      const result = service.deleteTodoWithConfirmation('non-existent-id');
+
+      expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+      expect(result.success).toBe(false);
+      expect(result.confirmed).toBe(true);
+      expect(result.error).toBe('Todo not found or could not be deleted');
+      expect(service.errorMessage()).toBe('Todo not found or could not be deleted');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should clear messages before processing', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+      service.setErrorMessage('Previous error');
+      service.setSuccessMessage('Previous success');
+
+      service.deleteTodoWithConfirmation(todo.id);
+
+      expect(service.successMessage()).toBe('Todo deleted successfully');
+      expect(service.errorMessage()).toBeNull();
+    });
+
+    it('should handle exception during confirmation process', () => {
+      // Mock confirm to throw an error
+      vi.spyOn(confirmationService, 'confirm').mockImplementation(() => {
+        throw new Error('Simulated error');
+      });
+
+      const result = service.deleteTodoWithConfirmation(todo.id);
+
+      expect(result.success).toBe(false);
+      expect(result.confirmed).toBe(true); // Exception after confirmation attempt
+      expect(result.error).toBe('Failed to delete todo. Please try again.');
+      expect(service.errorMessage()).toBe('Failed to delete todo. Please try again.');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should handle exception during deletion after confirmation', () => {
+      vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
+      
+      // Mock deleteTodo to throw an error
+      const originalDeleteTodo = service.deleteTodo;
+      service.deleteTodo = vi.fn().mockImplementation(() => {
+        throw new Error('Simulated error');
+      });
+
+      const result = service.deleteTodoWithConfirmation(todo.id);
+
+      expect(result.success).toBe(false);
+      expect(result.confirmed).toBe(true);
+      expect(result.error).toBe('Failed to delete todo. Please try again.');
+      expect(service.errorMessage()).toBe('Failed to delete todo. Please try again.');
+      expect(service.successMessage()).toBeNull();
+      expect(service.isLoading()).toBe(false);
+
+      // Restore original method
+      service.deleteTodo = originalDeleteTodo;
+    });
+  });
 });
