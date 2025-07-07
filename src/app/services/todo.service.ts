@@ -66,6 +66,24 @@ export class TodoService {
   /** Readonly signal exposing the current sort order for external consumption */
   readonly sortOrder = this._sortOrder.asReadonly();
   
+  /** Private signal for user feedback error messages */
+  private _errorMessage = signal<string | null>(null);
+  
+  /** Readonly signal exposing error messages for external consumption */
+  readonly errorMessage = this._errorMessage.asReadonly();
+  
+  /** Private signal for user feedback success messages */
+  private _successMessage = signal<string | null>(null);
+  
+  /** Readonly signal exposing success messages for external consumption */
+  readonly successMessage = this._successMessage.asReadonly();
+  
+  /** Private signal for loading state */
+  private _isLoading = signal<boolean>(false);
+  
+  /** Readonly signal exposing loading state for external consumption */
+  readonly isLoading = this._isLoading.asReadonly();
+  
   /** 
    * Computed signal providing filtered todos based on current filter state.
    * @description Automatically recalculates when todos or filter changes, providing
@@ -326,6 +344,156 @@ export class TodoService {
     }
 
     return this.deleteTodo(id);
+  }
+
+  /**
+   * Creates a new todo with validation and enhanced error handling.
+   * @description Validates the request, creates the todo, and provides structured result
+   * with success status, created todo, or error message. Handles all error scenarios
+   * and provides user-friendly feedback through service signals.
+   * @param request - The todo creation request to validate and process
+   * @returns Structured result with success flag, created todo, or error message
+   */
+  addTodoWithValidation(request: CreateTodoRequest): { success: boolean; todo?: Todo; error?: string } {
+    this.clearMessages();
+    this.setLoading(true);
+
+    try {
+      // Validate the request using existing validation method
+      const validation = this.validateCreateRequest(request);
+      if (!validation.valid) {
+        this.setErrorMessage(validation.error!);
+        this.setLoading(false);
+        return { success: false, error: validation.error };
+      }
+
+      // Create the todo using existing method
+      const newTodo = this.addTodo(request);
+      this.setSuccessMessage('Todo created successfully');
+      this.setLoading(false);
+      
+      return { success: true, todo: newTodo };
+    } catch {
+      const errorMessage = 'Failed to create todo. Please try again.';
+      this.setErrorMessage(errorMessage);
+      this.setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Toggles a todo completion status with enhanced error handling.
+   * @description Safely toggles the todo completion status and provides structured result
+   * with success status, updated todo, or error message. Handles todo not found scenarios
+   * and provides user-friendly feedback through service signals.
+   * @param id - The unique identifier of the todo to toggle
+   * @returns Structured result with success flag, updated todo, or error message
+   */
+  toggleTodoSafely(id: string): { success: boolean; todo?: Todo; error?: string } {
+    this.clearMessages();
+    this.setLoading(true);
+
+    try {
+      // Attempt to toggle using existing method
+      const toggledTodo = this.toggleTodo(id);
+      
+      if (!toggledTodo) {
+        const errorMessage = 'Todo not found or could not be toggled';
+        this.setErrorMessage(errorMessage);
+        this.setLoading(false);
+        return { success: false, error: errorMessage };
+      }
+
+      const statusMessage = toggledTodo.completed ? 'Todo marked as completed' : 'Todo marked as active';
+      this.setSuccessMessage(statusMessage);
+      this.setLoading(false);
+      
+      return { success: true, todo: toggledTodo };
+    } catch {
+      const errorMessage = 'Failed to toggle todo. Please try again.';
+      this.setErrorMessage(errorMessage);
+      this.setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Deletes a todo with user confirmation and enhanced error handling.
+   * @description Combines user confirmation and todo deletion with structured result
+   * including confirmation status, success status, and error message. Provides
+   * user-friendly feedback through service signals for all scenarios.
+   * @param id - The unique identifier of the todo to delete
+   * @returns Structured result with success flag, confirmation status, or error message
+   */
+  deleteTodoWithConfirmation(id: string): { success: boolean; confirmed: boolean; error?: string } {
+    this.clearMessages();
+    this.setLoading(true);
+
+    try {
+      // Get confirmation from user
+      const confirmed = this.confirmationService.confirm('Are you sure you want to delete this todo?');
+      
+      if (!confirmed) {
+        this.clearMessages(); // Don't show any messages for user cancellation
+        this.setLoading(false);
+        return { success: false, confirmed: false };
+      }
+
+      // Attempt to delete the todo
+      const deleted = this.deleteTodo(id);
+      
+      if (!deleted) {
+        const errorMessage = 'Todo not found or could not be deleted';
+        this.setErrorMessage(errorMessage);
+        this.setLoading(false);
+        return { success: false, confirmed: true, error: errorMessage };
+      }
+
+      this.setSuccessMessage('Todo deleted successfully');
+      this.setLoading(false);
+      
+      return { success: true, confirmed: true };
+    } catch {
+      const errorMessage = 'Failed to delete todo. Please try again.';
+      this.setErrorMessage(errorMessage);
+      this.setLoading(false);
+      return { success: false, confirmed: true, error: errorMessage };
+    }
+  }
+
+  /**
+   * Clears all user feedback messages.
+   * @description Resets error and success messages to null for a clean state.
+   */
+  clearMessages(): void {
+    this._errorMessage.set(null);
+    this._successMessage.set(null);
+  }
+
+  /**
+   * Sets an error message for user feedback.
+   * @param message - The error message to display to the user
+   */
+  setErrorMessage(message: string): void {
+    this._errorMessage.set(message);
+    this._successMessage.set(null); // Clear success message when setting error
+  }
+
+  /**
+   * Sets a success message for user feedback.
+   * @param message - The success message to display to the user
+   */
+  setSuccessMessage(message: string): void {
+    this._successMessage.set(message);
+    this._errorMessage.set(null); // Clear error message when setting success
+  }
+
+  /**
+   * Sets the loading state for user feedback.
+   * @param loading - True if an operation is in progress, false otherwise
+   */
+  setLoading(loading: boolean): void {
+    this._isLoading.set(loading);
   }
 
   /**
