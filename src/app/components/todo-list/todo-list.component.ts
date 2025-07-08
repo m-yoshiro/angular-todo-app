@@ -19,8 +19,8 @@ import { CreateTodoRequest } from '../../models/todo.model';
  * Standalone component for displaying the complete list of todos with form integration.
  * @description Main todo listing component that uses signal-based state management
  * and Angular 20's new template syntax. Integrates TodoItem components for individual
- * item management and AddTodoForm component for creating new todos. Provides a complete
- * todo management interface with proper accessibility and error handling.
+ * item management and AddTodoForm component for creating new todos. Focuses on presentation
+ * and event delegation, with all business logic handled by the service layer.
  */
 @Component({
   selector: 'app-todo-list',
@@ -46,82 +46,32 @@ export class TodoListComponent {
   public readonly stats = computed(() => this.todoService.stats());
 
   /**
-   * Handles form submission from AddTodoForm component with error handling.
-   * @description Processes todo creation requests from the AddTodoForm component,
-   * validates the request data, and delegates to TodoService for actual todo creation.
-   * Includes error handling for invalid requests and service failures.
+   * Handles form submission from AddTodoForm component.
+   * @description Delegates todo creation requests to TodoService for validation and processing.
+   * All business logic, validation, and error handling are handled by the service layer.
    * @param createRequest - The todo creation request from the form
-   * @throws {Error} When createRequest is invalid or service operation fails
    */
   onAddTodo(createRequest: CreateTodoRequest): void {
-    try {
-      // Validate the request has required fields
-      if (!createRequest?.title?.trim()) {
-        console.error('Invalid todo creation request: Title is required');
-        return;
-      }
-
-      // Delegate to TodoService for actual todo creation
-      this.todoService.addTodo(createRequest);
-    } catch (error) {
-      // Log error for debugging while maintaining user experience
-      console.error('Failed to create todo:', error);
-      // In a real application, you might want to show user-friendly error messages
-      // or trigger error handling UI states here
-    }
+    this.todoService.addTodoWithValidation(createRequest);
   }
 
   /**
-   * Handles todo deletion with user confirmation and error handling.
-   * @description Processes todo deletion requests with user confirmation dialog,
-   * validates the operation, and delegates to TodoService for actual todo deletion.
-   * Includes error handling for service failures and user feedback.
+   * Handles todo deletion with user confirmation.
+   * @description Delegates todo deletion requests to TodoService for confirmation and processing.
+   * All confirmation dialogs, business logic, and error handling are handled by the service layer.
    * @param id - The unique identifier of the todo to delete
    */
   onDeleteTodo(id: string): void {
-    try {
-      // Show confirmation dialog to prevent accidental deletions
-      const confirmed = confirm('Are you sure you want to delete this todo?');
-      if (!confirmed) {
-        return;
-      }
-
-      // Delegate to TodoService for actual todo deletion
-      const success = this.todoService.deleteTodo(id);
-      
-      if (!success) {
-        console.error('Todo not found or could not be deleted:', id);
-        return;
-      }
-    } catch (error) {
-      // Log error for debugging while maintaining user experience
-      console.error('Failed to delete todo:', error);
-      // In a real application, you might want to show user-friendly error messages
-      // or trigger error handling UI states here
-    }
+    this.todoService.deleteTodoWithConfirmation(id);
   }
 
   /**
-   * Handles todo completion toggle with error handling.
-   * @description Processes todo toggle requests by delegating to TodoService
-   * for actual todo completion status toggling. Includes error handling for
-   * service failures and invalid todo IDs.
+   * Handles todo completion toggle.
+   * @description Delegates todo toggle requests to TodoService for safe processing.
+   * All business logic, error handling, and user feedback are handled by the service layer.
    * @param id - The unique identifier of the todo to toggle
    */
   onToggleTodo(id: string): void {
-    try {
-      // Delegate to TodoService for actual todo toggle
-      const toggledTodo = this.todoService.toggleTodo(id);
-      
-      if (!toggledTodo) {
-        console.error('Todo not found or could not be toggled:', id);
-        return;
-      }
-    } catch (error) {
-      // Log error for debugging while maintaining user experience
-      console.error('Failed to toggle todo:', error);
-      // In a real application, you might want to show user-friendly error messages
-      // or trigger error handling UI states here
-    }
+    this.todoService.toggleTodoSafely(id);
   }
 }

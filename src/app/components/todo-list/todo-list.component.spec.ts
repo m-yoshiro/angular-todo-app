@@ -26,6 +26,14 @@ describe('TodoListComponent', () => {
     showAll: ReturnType<typeof vi.fn>;
     showActive: ReturnType<typeof vi.fn>;
     showCompleted: ReturnType<typeof vi.fn>;
+    // Enhanced methods with validation and confirmation
+    addTodoWithValidation: ReturnType<typeof vi.fn>;
+    deleteTodoWithConfirmation: ReturnType<typeof vi.fn>;
+    toggleTodoSafely: ReturnType<typeof vi.fn>;
+    // User feedback signals
+    errorMessage: ReturnType<typeof vi.fn>;
+    successMessage: ReturnType<typeof vi.fn>;
+    isLoading: ReturnType<typeof vi.fn>;
   };
 
   const mockTodos: Todo[] = [
@@ -78,7 +86,15 @@ describe('TodoListComponent', () => {
       toggleSortOrder: vi.fn(),
       showAll: vi.fn(),
       showActive: vi.fn(),
-      showCompleted: vi.fn()
+      showCompleted: vi.fn(),
+      // Enhanced methods with validation and confirmation
+      addTodoWithValidation: vi.fn().mockReturnValue({ success: true, todo: mockTodos[0] }),
+      deleteTodoWithConfirmation: vi.fn().mockReturnValue({ success: true, confirmed: true }),
+      toggleTodoSafely: vi.fn().mockReturnValue({ success: true, todo: mockTodos[0] }),
+      // User feedback signals
+      errorMessage: vi.fn().mockReturnValue(null),
+      successMessage: vi.fn().mockReturnValue(null),
+      isLoading: vi.fn().mockReturnValue(false)
     };
 
     await TestBed.configureTestingModule({
@@ -320,7 +336,7 @@ describe('TodoListComponent', () => {
       expect(typeof component.onAddTodo).toBe('function');
     });
 
-    it('should call TodoService.addTodo when onAddTodo is called', () => {
+    it('should call TodoService.addTodoWithValidation when onAddTodo is called', () => {
       const createRequest = {
         title: 'New Todo',
         description: 'New Description',
@@ -331,7 +347,7 @@ describe('TodoListComponent', () => {
 
       component.onAddTodo(createRequest);
 
-      expect(mockTodoService.addTodo).toHaveBeenCalledWith(createRequest);
+      expect(mockTodoService.addTodoWithValidation).toHaveBeenCalledWith(createRequest);
     });
 
     it('should connect AddTodoForm formSubmit event to onAddTodo handler', () => {
@@ -366,7 +382,7 @@ describe('TodoListComponent', () => {
       };
 
       // More explicit mock implementation showing signal update behavior
-      mockTodoService.addTodo.mockImplementation((createRequest: CreateTodoRequest) => {
+      mockTodoService.addTodoWithValidation.mockImplementation((createRequest: CreateTodoRequest) => {
         // Simulate the service creating a new todo and updating the signal
         const createdTodo = {
           ...newTodo,
@@ -379,6 +395,8 @@ describe('TodoListComponent', () => {
         // Explicitly update the mock to return the new todos array
         mockTodoService.todos.mockReturnValue(updatedTodos);
         mockTodoService.sortedAndFilteredTodos.mockReturnValue(updatedTodos);
+        
+        return { success: true, todo: createdTodo };
       });
 
       const createRequest = {
@@ -390,8 +408,8 @@ describe('TodoListComponent', () => {
       component.onAddTodo(createRequest);
       fixture.detectChanges();
 
-      expect(mockTodoService.addTodo).toHaveBeenCalledWith(createRequest);
-      expect(mockTodoService.addTodo).toHaveBeenCalledTimes(1);
+      expect(mockTodoService.addTodoWithValidation).toHaveBeenCalledWith(createRequest);
+      expect(mockTodoService.addTodoWithValidation).toHaveBeenCalledTimes(1);
       
       // Verify the todos signal was updated with the new todo
       const currentTodos = component.todos();
@@ -399,104 +417,6 @@ describe('TodoListComponent', () => {
       expect(currentTodos.some(todo => todo.title === 'New Todo from Form')).toBe(true);
     });
 
-    describe('Edge Cases and Error Handling', () => {
-      it('should handle invalid todo creation request with empty title', () => {
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-          // Intentionally empty for test
-        });
-        
-        const invalidRequest = {
-          title: '',
-          priority: 'medium' as const
-        };
-
-        component.onAddTodo(invalidRequest);
-
-        expect(consoleSpy).toHaveBeenCalledWith('Invalid todo creation request: Title is required');
-        expect(mockTodoService.addTodo).not.toHaveBeenCalled();
-        
-        consoleSpy.mockRestore();
-      });
-
-      it('should handle invalid todo creation request with whitespace-only title', () => {
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-          // Intentionally empty for test
-        });
-        
-        const invalidRequest = {
-          title: '   ',
-          priority: 'medium' as const
-        };
-
-        component.onAddTodo(invalidRequest);
-
-        expect(consoleSpy).toHaveBeenCalledWith('Invalid todo creation request: Title is required');
-        expect(mockTodoService.addTodo).not.toHaveBeenCalled();
-        
-        consoleSpy.mockRestore();
-      });
-
-      it('should handle null or undefined createRequest', () => {
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-          // Intentionally empty for test
-        });
-        
-        component.onAddTodo(null as unknown as CreateTodoRequest);
-
-        expect(consoleSpy).toHaveBeenCalledWith('Invalid todo creation request: Title is required');
-        expect(mockTodoService.addTodo).not.toHaveBeenCalled();
-        
-        consoleSpy.mockRestore();
-      });
-
-      it('should handle TodoService.addTodo throwing an error', () => {
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-          // Intentionally empty for test
-        });
-        const serviceError = new Error('Service unavailable');
-        
-        mockTodoService.addTodo.mockImplementation(() => {
-          throw serviceError;
-        });
-
-        const validRequest = {
-          title: 'Valid Todo',
-          priority: 'medium' as const
-        };
-
-        expect(() => component.onAddTodo(validRequest)).not.toThrow();
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to create todo:', serviceError);
-        
-        consoleSpy.mockRestore();
-      });
-
-      it('should handle form submission with minimal required data', () => {
-        const minimalRequest = {
-          title: 'Minimal Todo',
-          priority: 'low' as const
-        };
-
-        component.onAddTodo(minimalRequest);
-
-        expect(mockTodoService.addTodo).toHaveBeenCalledWith(minimalRequest);
-        expect(mockTodoService.addTodo).toHaveBeenCalledTimes(1);
-      });
-
-      it('should handle form submission with all optional fields', () => {
-        const completeRequest = {
-          title: 'Complete Todo',
-          description: 'A detailed description',
-          priority: 'high' as const,
-          dueDate: new Date('2024-12-31'),
-          tags: ['important', 'urgent']
-        };
-
-        component.onAddTodo(completeRequest);
-
-        expect(mockTodoService.addTodo).toHaveBeenCalledWith(completeRequest);
-        expect(mockTodoService.addTodo).toHaveBeenCalledTimes(1);
-      });
-    });
   });
 
   describe('Todo Deletion (TDD)', () => {
@@ -505,70 +425,13 @@ describe('TodoListComponent', () => {
       expect(typeof component.onDeleteTodo).toBe('function');
     });
 
-    it('should call TodoService.deleteTodo when onDeleteTodo is called', () => {
+    it('should call TodoService.deleteTodoWithConfirmation when onDeleteTodo is called', () => {
       const todoId = 'test-id-123';
       
-      // Mock confirm to return true (user confirms deletion)
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
-      mockTodoService.deleteTodo.mockReturnValue(true);
-
       component.onDeleteTodo(todoId);
 
-      expect(mockTodoService.deleteTodo).toHaveBeenCalledWith(todoId);
-      expect(mockTodoService.deleteTodo).toHaveBeenCalledTimes(1);
-    });
-
-    it('should show confirmation dialog before deleting todo', () => {
-      const todoId = 'test-id-123';
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-      mockTodoService.deleteTodo.mockReturnValue(true);
-
-      component.onDeleteTodo(todoId);
-
-      expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
-    });
-
-    it('should not delete todo if user cancels confirmation', () => {
-      const todoId = 'test-id-123';
-      vi.spyOn(window, 'confirm').mockReturnValue(false);
-      mockTodoService.deleteTodo.mockReturnValue(true);
-
-      component.onDeleteTodo(todoId);
-
-      expect(mockTodoService.deleteTodo).not.toHaveBeenCalled();
-    });
-
-    it('should handle error when TodoService.deleteTodo fails', () => {
-      const todoId = 'test-id-123';
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Intentionally empty for test
-      });
-      
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
-      mockTodoService.deleteTodo.mockImplementation(() => {
-        throw new Error('Delete failed');
-      });
-
-      expect(() => component.onDeleteTodo(todoId)).not.toThrow();
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to delete todo:', expect.any(Error));
-      
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle TodoService.deleteTodo returning false', () => {
-      const todoId = 'non-existent-id';
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Intentionally empty for test
-      });
-      
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
-      mockTodoService.deleteTodo.mockReturnValue(false);
-
-      component.onDeleteTodo(todoId);
-
-      expect(consoleSpy).toHaveBeenCalledWith('Todo not found or could not be deleted:', todoId);
-      
-      consoleSpy.mockRestore();
+      expect(mockTodoService.deleteTodoWithConfirmation).toHaveBeenCalledWith(todoId);
+      expect(mockTodoService.deleteTodoWithConfirmation).toHaveBeenCalledTimes(1);
     });
 
     it('should connect TodoItem deleteTodo event to onDeleteTodo handler', () => {
@@ -597,47 +460,13 @@ describe('TodoListComponent', () => {
       expect(typeof component.onToggleTodo).toBe('function');
     });
 
-    it('should call TodoService.toggleTodo when onToggleTodo is called', () => {
+    it('should call TodoService.toggleTodoSafely when onToggleTodo is called', () => {
       const todoId = 'test-id-123';
-      const toggledTodo = { ...mockTodos[0], completed: !mockTodos[0].completed };
-      mockTodoService.toggleTodo.mockReturnValue(toggledTodo);
 
       component.onToggleTodo(todoId);
 
-      expect(mockTodoService.toggleTodo).toHaveBeenCalledWith(todoId);
-      expect(mockTodoService.toggleTodo).toHaveBeenCalledTimes(1);
-    });
-
-    it('should handle error when TodoService.toggleTodo returns null', () => {
-      const todoId = 'non-existent-id';
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Intentionally empty for test
-      });
-      
-      mockTodoService.toggleTodo.mockReturnValue(null);
-
-      component.onToggleTodo(todoId);
-
-      expect(consoleSpy).toHaveBeenCalledWith('Todo not found or could not be toggled:', todoId);
-      
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle TodoService.toggleTodo throwing an error', () => {
-      const todoId = 'test-id-123';
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Intentionally empty for test
-      });
-      const serviceError = new Error('Toggle service unavailable');
-      
-      mockTodoService.toggleTodo.mockImplementation(() => {
-        throw serviceError;
-      });
-
-      expect(() => component.onToggleTodo(todoId)).not.toThrow();
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to toggle todo:', serviceError);
-      
-      consoleSpy.mockRestore();
+      expect(mockTodoService.toggleTodoSafely).toHaveBeenCalledWith(todoId);
+      expect(mockTodoService.toggleTodoSafely).toHaveBeenCalledTimes(1);
     });
 
     it('should connect TodoItem toggleComplete event to onToggleTodo handler', () => {
