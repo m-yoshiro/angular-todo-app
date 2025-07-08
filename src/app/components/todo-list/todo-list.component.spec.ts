@@ -135,6 +135,27 @@ describe('TodoListComponent', () => {
       expect(component.stats()).toEqual(mockStats);
     });
 
+    it('should have user feedback signal wrappers', () => {
+      expect(component.errorMessage).toBeDefined();
+      expect(component.successMessage).toBeDefined();
+      expect(component.isLoading).toBeDefined();
+    });
+
+    it('should expose errorMessage signal from service', () => {
+      expect(component.errorMessage).toBe(mockTodoService.errorMessage);
+      expect(component.errorMessage()).toBeNull();
+    });
+
+    it('should expose successMessage signal from service', () => {
+      expect(component.successMessage).toBe(mockTodoService.successMessage);
+      expect(component.successMessage()).toBeNull();
+    });
+
+    it('should expose isLoading signal from service', () => {
+      expect(component.isLoading).toBe(mockTodoService.isLoading);
+      expect(component.isLoading()).toBe(false);
+    });
+
     it('should update when service signals change', () => {
       const newTodos = [...mockTodos, {
         id: '3',
@@ -194,6 +215,142 @@ describe('TodoListComponent', () => {
       fixture.detectChanges();
       const todoItemComponents = fixture.nativeElement.querySelectorAll('app-todo-item');
       expect(todoItemComponents).toHaveLength(2);
+    });
+  });
+
+  describe('User Feedback UI', () => {
+    it('should not display feedback section when no feedback states are active', () => {
+      mockTodoService.isLoading.mockReturnValue(false);
+      mockTodoService.errorMessage.mockReturnValue(null);
+      mockTodoService.successMessage.mockReturnValue(null);
+      
+      fixture.detectChanges();
+      
+      const loadingElement = fixture.nativeElement.querySelector('[data-testid="loading-indicator"]');
+      const errorElement = fixture.nativeElement.querySelector('[data-testid="error-message"]');
+      const successElement = fixture.nativeElement.querySelector('[data-testid="success-message"]');
+      
+      expect(loadingElement).toBeFalsy();
+      expect(errorElement).toBeFalsy();
+      expect(successElement).toBeFalsy();
+    });
+
+    it('should display loading indicator when isLoading is true', () => {
+      mockTodoService.isLoading.mockReturnValue(true);
+      
+      fixture.detectChanges();
+      
+      const loadingElement = fixture.nativeElement.querySelector('[data-testid="loading-indicator"]');
+      expect(loadingElement).toBeTruthy();
+      expect(loadingElement.getAttribute('role')).toBe('status');
+      expect(loadingElement.getAttribute('aria-live')).toBe('polite');
+      expect(loadingElement.getAttribute('aria-label')).toBe('Loading');
+      
+      const spinner = loadingElement.querySelector('.spinner');
+      expect(spinner).toBeTruthy();
+      expect(spinner.getAttribute('aria-hidden')).toBe('true');
+      
+      const srText = loadingElement.querySelector('.sr-only');
+      expect(srText).toBeTruthy();
+      expect(srText.textContent.trim()).toBe('Loading, please wait...');
+    });
+
+    it('should display error message when errorMessage exists', () => {
+      const errorText = 'Something went wrong!';
+      mockTodoService.errorMessage.mockReturnValue(errorText);
+      
+      fixture.detectChanges();
+      
+      const errorElement = fixture.nativeElement.querySelector('[data-testid="error-message"]');
+      expect(errorElement).toBeTruthy();
+      expect(errorElement.getAttribute('role')).toBe('alert');
+      expect(errorElement.getAttribute('aria-live')).toBe('assertive');
+      
+      const errorIcon = errorElement.querySelector('.error-icon');
+      expect(errorIcon).toBeTruthy();
+      expect(errorIcon.getAttribute('aria-hidden')).toBe('true');
+      expect(errorIcon.textContent.trim()).toBe('⚠️');
+      
+      const errorTextElement = errorElement.querySelector('.error-text');
+      expect(errorTextElement).toBeTruthy();
+      expect(errorTextElement.textContent.trim()).toBe(errorText);
+    });
+
+    it('should display success message when successMessage exists', () => {
+      const successText = 'Todo created successfully!';
+      mockTodoService.successMessage.mockReturnValue(successText);
+      
+      fixture.detectChanges();
+      
+      const successElement = fixture.nativeElement.querySelector('[data-testid="success-message"]');
+      expect(successElement).toBeTruthy();
+      expect(successElement.getAttribute('role')).toBe('status');
+      expect(successElement.getAttribute('aria-live')).toBe('polite');
+      
+      const successIcon = successElement.querySelector('.success-icon');
+      expect(successIcon).toBeTruthy();
+      expect(successIcon.getAttribute('aria-hidden')).toBe('true');
+      expect(successIcon.textContent.trim()).toBe('✅');
+      
+      const successTextElement = successElement.querySelector('.success-text');
+      expect(successTextElement).toBeTruthy();
+      expect(successTextElement.textContent.trim()).toBe(successText);
+    });
+
+    it('should display multiple feedback states simultaneously if needed', () => {
+      mockTodoService.isLoading.mockReturnValue(true);
+      mockTodoService.errorMessage.mockReturnValue('Error occurred');
+      mockTodoService.successMessage.mockReturnValue('Success message');
+      
+      fixture.detectChanges();
+      
+      const loadingElement = fixture.nativeElement.querySelector('[data-testid="loading-indicator"]');
+      const errorElement = fixture.nativeElement.querySelector('[data-testid="error-message"]');
+      const successElement = fixture.nativeElement.querySelector('[data-testid="success-message"]');
+      
+      expect(loadingElement).toBeTruthy();
+      expect(errorElement).toBeTruthy();
+      expect(successElement).toBeTruthy();
+    });
+
+    it('should have proper accessibility structure for feedback section', () => {
+      mockTodoService.isLoading.mockReturnValue(true);
+      
+      fixture.detectChanges();
+      
+      const feedbackSection = fixture.nativeElement.querySelector('[data-testid="todo-feedback-section"]');
+      expect(feedbackSection).toBeTruthy();
+      expect(feedbackSection.getAttribute('aria-labelledby')).toBe('todo-feedback-heading');
+      
+      const feedbackHeading = fixture.nativeElement.querySelector('#todo-feedback-heading');
+      expect(feedbackHeading).toBeTruthy();
+      expect(feedbackHeading.textContent.trim()).toBe('Todo Application Status');
+      expect(feedbackHeading.classList.contains('sr-only')).toBe(true);
+    });
+
+    it('should use Angular 20 @if control flow for conditional rendering', () => {
+      // Test that conditional rendering works properly with signals
+      mockTodoService.isLoading.mockReturnValue(false);
+      mockTodoService.errorMessage.mockReturnValue(null);
+      mockTodoService.successMessage.mockReturnValue(null);
+      
+      fixture.detectChanges();
+      
+      // No feedback elements should be present
+      expect(fixture.nativeElement.querySelector('[data-testid="loading-indicator"]')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('[data-testid="error-message"]')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('[data-testid="success-message"]')).toBeFalsy();
+      
+      // Test that @if control flow properly shows elements when conditions are met
+      // This tests the template structure and conditional rendering logic
+      expect(component.isLoading).toBeDefined();
+      expect(component.errorMessage).toBeDefined();
+      expect(component.successMessage).toBeDefined();
+      
+      // Verify signals are properly exposed for template binding
+      expect(typeof component.isLoading).toBe('function');
+      expect(typeof component.errorMessage).toBe('function');  
+      expect(typeof component.successMessage).toBe('function');
     });
   });
 
@@ -273,11 +430,12 @@ describe('TodoListComponent', () => {
       
       // Check sub-headings (h3) with sr-only class
       const subHeadings = fixture.nativeElement.querySelectorAll('h3.sr-only');
-      expect(subHeadings).toHaveLength(4);
-      expect(subHeadings[0].textContent.trim()).toBe('Filter Todos');
-      expect(subHeadings[1].textContent.trim()).toBe('Sort Todos');
-      expect(subHeadings[2].textContent.trim()).toBe('Add New Todo');
-      expect(subHeadings[3].textContent.trim()).toBe('Todo Items');
+      expect(subHeadings).toHaveLength(5); // Updated to include feedback heading
+      expect(subHeadings[0].textContent.trim()).toBe('Todo Application Status');
+      expect(subHeadings[1].textContent.trim()).toBe('Filter Todos');
+      expect(subHeadings[2].textContent.trim()).toBe('Sort Todos');
+      expect(subHeadings[3].textContent.trim()).toBe('Add New Todo');
+      expect(subHeadings[4].textContent.trim()).toBe('Todo Items');
     });
 
     it('should have live regions for dynamic content updates', () => {

@@ -480,12 +480,20 @@ export class TodoService {
   }
 
   /**
-   * Sets a success message for user feedback.
+   * Sets a success message for user feedback with auto-clearing after 3 seconds.
+   * @description Sets the success message and automatically clears it after 3 seconds
+   * to provide toast-like behavior for better user experience. Error messages are cleared
+   * when success messages are set to avoid conflicting feedback.
    * @param message - The success message to display to the user
    */
   setSuccessMessage(message: string): void {
     this._successMessage.set(message);
     this._errorMessage.set(null); // Clear error message when setting success
+    
+    // Auto-clear success message after 3 seconds for toast-like behavior
+    setTimeout(() => {
+      this._successMessage.set(null);
+    }, 3000);
   }
 
   /**

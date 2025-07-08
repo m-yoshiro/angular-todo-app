@@ -10,6 +10,32 @@
     }
   </header>
 
+  <!-- User Feedback Section -->
+  <section class="todo-list__feedback" aria-labelledby="todo-feedback-heading" data-testid="todo-feedback-section">
+    <h3 id="todo-feedback-heading" class="sr-only">Todo Application Status</h3>
+    
+    @if (isLoading()) {
+      <div class="todo-list__loading" role="status" aria-live="polite" aria-label="Loading" data-testid="loading-indicator">
+        <div class="spinner" aria-hidden="true"></div>
+        <span class="sr-only">Loading, please wait...</span>
+      </div>
+    }
+    
+    @if (errorMessage(); as error) {
+      <div class="todo-list__error" role="alert" aria-live="assertive" data-testid="error-message">
+        <span class="error-icon" aria-hidden="true">⚠️</span>
+        <span class="error-text">{{ error }}</span>
+      </div>
+    }
+    
+    @if (successMessage(); as success) {
+      <div class="todo-list__success" role="status" aria-live="polite" data-testid="success-message">
+        <span class="success-icon" aria-hidden="true">✅</span>
+        <span class="success-text">{{ success }}</span>
+      </div>
+    }
+  </section>
+
   <section class="todo-list__filter" aria-labelledby="todo-filter-heading" data-testid="todo-filter-section">
     <h3 id="todo-filter-heading" class="sr-only">Filter Todos</h3>
     <app-todo-filter 
