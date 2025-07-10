@@ -724,6 +724,112 @@ describe('TodoService', () => {
       expect(service.successMessage()).toBe('Success message');
       expect(service.errorMessage()).toBeNull();
     });
+
+    describe('Memory Management', () => {
+      beforeEach(() => {
+        // Mock setTimeout and clearTimeout for testing
+        vi.useFakeTimers();
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('should clear existing timeout when setting new success message', () => {
+        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+        const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+        // Set first success message
+        service.setSuccessMessage('First message');
+        expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+        expect(clearTimeoutSpy).not.toHaveBeenCalled();
+
+        // Set second success message - should clear first timeout
+        service.setSuccessMessage('Second message');
+        expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
+        expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
+
+        expect(service.successMessage()).toBe('Second message');
+      });
+
+      it('should clear timeout on service destruction', () => {
+        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+
+        // Set success message to create timeout
+        service.setSuccessMessage('Test message');
+        expect(service.successMessage()).toBe('Test message');
+
+        // Call ngOnDestroy
+        service.ngOnDestroy();
+        expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('should handle ngOnDestroy when no timeout is set', () => {
+        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+
+        // Call ngOnDestroy without setting any message
+        service.ngOnDestroy();
+        expect(clearTimeoutSpy).not.toHaveBeenCalled();
+      });
+
+      it('should auto-clear success message after 3 seconds', () => {
+        service.setSuccessMessage('Test message');
+        expect(service.successMessage()).toBe('Test message');
+
+        // Fast-forward time by 3 seconds
+        vi.advanceTimersByTime(3000);
+
+        expect(service.successMessage()).toBeNull();
+      });
+
+      it('should prevent memory leaks with rapid successive calls', () => {
+        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+        const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+        // Rapidly set multiple success messages
+        service.setSuccessMessage('Message 1');
+        service.setSuccessMessage('Message 2');
+        service.setSuccessMessage('Message 3');
+        service.setSuccessMessage('Message 4');
+
+        // Should have called setTimeout 4 times and clearTimeout 3 times
+        expect(setTimeoutSpy).toHaveBeenCalledTimes(4);
+        expect(clearTimeoutSpy).toHaveBeenCalledTimes(3);
+
+        // Only the last message should be visible
+        expect(service.successMessage()).toBe('Message 4');
+
+        // Fast-forward and verify only one timeout fires
+        vi.advanceTimersByTime(3000);
+        expect(service.successMessage()).toBeNull();
+      });
+
+      it('should clear timeout ID after timeout completes naturally', () => {
+        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+
+        service.setSuccessMessage('Test message');
+        expect(service.successMessage()).toBe('Test message');
+
+        // Fast-forward time by 3 seconds to let timeout complete
+        vi.advanceTimersByTime(3000);
+        expect(service.successMessage()).toBeNull();
+
+        // Now calling ngOnDestroy should not call clearTimeout since ID is already cleared
+        service.ngOnDestroy();
+        expect(clearTimeoutSpy).not.toHaveBeenCalled();
+      });
+
+      it('should use window.setTimeout for proper typing', () => {
+        const windowSetTimeoutSpy = vi.spyOn(window, 'setTimeout');
+
+        service.setSuccessMessage('Test message');
+
+        expect(windowSetTimeoutSpy).toHaveBeenCalledWith(
+          expect.any(Function),
+          3000
+        );
+      });
+    });
   });
 
   describe('addTodoWithValidation', () => {

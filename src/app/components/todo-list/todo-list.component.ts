@@ -46,6 +46,21 @@ export class TodoListComponent {
   public readonly stats = computed(() => this.todoService.stats());
 
   /**
+   * Signal for accessing error messages from the service
+   */
+  public readonly errorMessage = this.todoService.errorMessage;
+
+  /**
+   * Signal for accessing success messages from the service
+   */
+  public readonly successMessage = this.todoService.successMessage;
+
+  /**
+   * Signal for accessing loading state from the service
+   */
+  public readonly isLoading = this.todoService.isLoading;
+
+  /**
    * Handles form submission from AddTodoForm component.
    * @description Delegates todo creation requests to TodoService for validation and processing.
    * All business logic, validation, and error handling are handled by the service layer.
