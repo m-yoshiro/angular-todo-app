@@ -5,7 +5,7 @@
  * primitives for optimal performance and reactivity without zones.
  */
 
-import { Injectable, signal, computed, effect, inject } from '@angular/core';
+import { Injectable, signal, computed, effect, inject, OnDestroy } from '@angular/core';
 import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType, SortType, SortOrder } from '../models/todo.model';
 import { ConfirmationService } from './confirmation.service';
 
@@ -14,6 +14,13 @@ import { ConfirmationService } from './confirmation.service';
  * @description Implements signal-based state management using Angular 20's new signal primitives.
  * Provides CRUD operations, automatic statistics computation, and reactive data access.
  * Uses readonly signals for external access while maintaining internal mutability through private signals.
+ * 
+ * **Memory Management**: Implements proper cleanup for auto-clearing success message timeouts
+ * to prevent memory leaks. The service automatically clears pending timeouts when destroyed
+ * or when new success messages override existing ones.
+ * 
+ * **Lifecycle**: Implements OnDestroy to ensure proper resource cleanup when the service
+ * is no longer needed, particularly important for the auto-clearing timeout functionality.
  * 
  * @example
  * ```typescript
@@ -29,13 +36,16 @@ import { ConfirmationService } from './confirmation.service';
  *     title: 'New Task',
  *     priority: 'medium'
  *   });
+ *   
+ *   // Set success message with auto-clearing (memory-safe)
+ *   this.todoService.setSuccessMessage('Task completed!');
  * }
  * ```
  */
 @Injectable({
   providedIn: 'root'
 })
-export class TodoService {
+export class TodoService implements OnDestroy {
   /** Local storage key for persisting todos */
   private readonly STORAGE_KEY = 'todo-app-todos';
   
@@ -83,6 +93,9 @@ export class TodoService {
   
   /** Readonly signal exposing loading state for external consumption */
   readonly isLoading = this._isLoading.asReadonly();
+
+  /** Private timeout ID for success message auto-clearing to prevent memory leaks */
+  private successTimeoutId?: number;
   
   /** 
    * Computed signal providing filtered todos based on current filter state.
@@ -129,6 +142,18 @@ export class TodoService {
         setTimeout(() => this.saveTodosToStorage(todos), 0);
       }
     });
+  }
+
+  /**
+   * Cleanup method called when the service is destroyed.
+   * @description Clears any pending success message timeouts to prevent memory leaks
+   * and ensure proper resource cleanup when the service is no longer needed.
+   */
+  ngOnDestroy(): void {
+    if (this.successTimeoutId) {
+      clearTimeout(this.successTimeoutId);
+      this.successTimeoutId = undefined;
+    }
   }
   
   /** 
@@ -483,16 +508,24 @@ export class TodoService {
    * Sets a success message for user feedback with auto-clearing after 3 seconds.
    * @description Sets the success message and automatically clears it after 3 seconds
    * to provide toast-like behavior for better user experience. Error messages are cleared
-   * when success messages are set to avoid conflicting feedback.
+   * when success messages are set to avoid conflicting feedback. Includes proper memory
+   * management to prevent timeout leaks when called multiple times rapidly.
    * @param message - The success message to display to the user
    */
   setSuccessMessage(message: string): void {
+    // Clear any existing timeout to prevent memory leaks from rapid successive calls
+    if (this.successTimeoutId) {
+      clearTimeout(this.successTimeoutId);
+      this.successTimeoutId = undefined;
+    }
+
     this._successMessage.set(message);
     this._errorMessage.set(null); // Clear error message when setting success
     
-    // Auto-clear success message after 3 seconds for toast-like behavior
-    setTimeout(() => {
+    // Auto-clear success message after 3 seconds and store timeout ID for cleanup
+    this.successTimeoutId = window.setTimeout(() => {
       this._successMessage.set(null);
+      this.successTimeoutId = undefined; // Clear the timeout ID when done
     }, 3000);
   }
 
