@@ -6,11 +6,12 @@
  * and AddTodoForm component for creating new todos with full form integration.
  */
 
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TodoService } from '../../services/todo.service';
 import { TodoItemComponent } from '../todo-item/todo-item.component';
 import { AddTodoFormComponent } from '../add-todo-form/add-todo-form.component';
+import { AddTodoFormSignalComponent } from '../add-todo-form/add-todo-form-signal.component';
 import { TodoFilterComponent } from '../todo-filter/todo-filter.component';
 import { TodoSortComponent } from '../todo-sort/todo-sort.component';
 import { CreateTodoRequest } from '../../models/todo.model';
@@ -25,7 +26,7 @@ import { CreateTodoRequest } from '../../models/todo.model';
 @Component({
   selector: 'app-todo-list',
   standalone: true,
-  imports: [CommonModule, TodoItemComponent, AddTodoFormComponent, TodoFilterComponent, TodoSortComponent],
+  imports: [CommonModule, TodoItemComponent, AddTodoFormComponent, AddTodoFormSignalComponent, TodoFilterComponent, TodoSortComponent],
   templateUrl: './todo-list.component.html',
   styleUrl: './todo-list.component.scss'
 })
@@ -61,6 +62,21 @@ export class TodoListComponent {
   public readonly isLoading = this.todoService.isLoading;
 
   /**
+   * Signal for tracking which form implementation to use
+   * @description Controls whether to show reactive forms or signal-based forms
+   * for performance and architectural comparison
+   */
+  public readonly formType = signal<'reactive' | 'signal'>('reactive');
+
+  /**
+   * Available form types for the toggle
+   */
+  public readonly formTypes = [
+    { value: 'reactive' as const, label: 'Reactive Forms', description: 'Traditional Angular reactive forms' },
+    { value: 'signal' as const, label: 'Signal Forms', description: 'Experimental signal-based forms' }
+  ];
+
+  /**
    * Handles form submission from AddTodoForm component.
    * @description Delegates todo creation requests to TodoService for validation and processing.
    * All business logic, validation, and error handling are handled by the service layer.
@@ -88,5 +104,14 @@ export class TodoListComponent {
    */
   onToggleTodo(id: string): void {
     this.todoService.toggleTodoSafely(id);
+  }
+
+  /**
+   * Toggles between reactive forms and signal-based forms implementations.
+   * @description Switches the form implementation for performance and architectural comparison.
+   * @param formType - The form type to switch to ('reactive' | 'signal')
+   */
+  onFormTypeChange(formType: 'reactive' | 'signal'): void {
+    this.formType.set(formType);
   }
 }

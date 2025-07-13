@@ -806,4 +806,206 @@ describe('TodoListComponent', () => {
       });
     });
   });
+
+  describe('Form Toggle System (Signal vs Reactive Forms)', () => {
+    it('should initialize with reactive forms as default', () => {
+      expect(component.formType()).toBe('reactive');
+    });
+
+    it('should have form type options available', () => {
+      expect(component.formTypes).toBeDefined();
+      expect(component.formTypes).toHaveLength(2);
+      expect(component.formTypes[0].value).toBe('reactive');
+      expect(component.formTypes[1].value).toBe('signal');
+    });
+
+    it('should switch form type when onFormTypeChange is called', () => {
+      expect(component.formType()).toBe('reactive');
+      
+      component.onFormTypeChange('signal');
+      expect(component.formType()).toBe('signal');
+      
+      component.onFormTypeChange('reactive');
+      expect(component.formType()).toBe('reactive');
+    });
+
+    it('should render reactive form by default', () => {
+      fixture.detectChanges();
+      
+      const reactiveForm = fixture.nativeElement.querySelector('[data-testid="reactive-form"]');
+      const signalForm = fixture.nativeElement.querySelector('[data-testid="signal-form"]');
+      
+      expect(reactiveForm).toBeTruthy();
+      expect(signalForm).toBeFalsy();
+    });
+
+    it('should render signal form when toggled', () => {
+      component.onFormTypeChange('signal');
+      fixture.detectChanges();
+      
+      const reactiveForm = fixture.nativeElement.querySelector('[data-testid="reactive-form"]');
+      const signalForm = fixture.nativeElement.querySelector('[data-testid="signal-form"]');
+      
+      expect(reactiveForm).toBeFalsy();
+      expect(signalForm).toBeTruthy();
+    });
+
+    it('should render form toggle section', () => {
+      fixture.detectChanges();
+      
+      const toggleSection = fixture.nativeElement.querySelector('[data-testid="form-toggle-section"]');
+      expect(toggleSection).toBeTruthy();
+      
+      const toggleTitle = toggleSection.querySelector('h4');
+      expect(toggleTitle.textContent.trim()).toBe('Form Implementation Comparison');
+    });
+
+    it('should render radio buttons for form type selection', () => {
+      fixture.detectChanges();
+      
+      const reactiveRadio = fixture.nativeElement.querySelector('[data-testid="form-type-reactive"] input');
+      const signalRadio = fixture.nativeElement.querySelector('[data-testid="form-type-signal"] input');
+      
+      expect(reactiveRadio).toBeTruthy();
+      expect(signalRadio).toBeTruthy();
+      expect(reactiveRadio.type).toBe('radio');
+      expect(signalRadio.type).toBe('radio');
+    });
+
+    it('should show correct radio button as checked based on form type', () => {
+      fixture.detectChanges();
+      
+      const reactiveRadio = fixture.nativeElement.querySelector('[data-testid="form-type-reactive"] input');
+      const signalRadio = fixture.nativeElement.querySelector('[data-testid="form-type-signal"] input');
+      
+      // Initially reactive should be checked
+      expect(reactiveRadio.checked).toBe(true);
+      expect(signalRadio.checked).toBe(false);
+      
+      // Switch to signal
+      component.onFormTypeChange('signal');
+      fixture.detectChanges();
+      
+      expect(reactiveRadio.checked).toBe(false);
+      expect(signalRadio.checked).toBe(true);
+    });
+
+    it('should handle radio button click events', () => {
+      const onFormTypeChangeSpy = vi.spyOn(component, 'onFormTypeChange');
+      fixture.detectChanges();
+      
+      const signalRadio = fixture.nativeElement.querySelector('[data-testid="form-type-signal"] input');
+      
+      // Simulate radio button change
+      signalRadio.click();
+      
+      expect(onFormTypeChangeSpy).toHaveBeenCalledWith('signal');
+    });
+
+    it('should maintain form type state during component lifecycle', () => {
+      component.onFormTypeChange('signal');
+      expect(component.formType()).toBe('signal');
+      
+      // Simulate component re-render
+      fixture.detectChanges();
+      
+      expect(component.formType()).toBe('signal');
+    });
+
+    it('should have proper accessibility for form toggle', () => {
+      fixture.detectChanges();
+      
+      const reactiveLabel = fixture.nativeElement.querySelector('[data-testid="form-type-reactive"]');
+      const signalLabel = fixture.nativeElement.querySelector('[data-testid="form-type-signal"]');
+      
+      expect(reactiveLabel.querySelector('input').getAttribute('aria-describedby')).toBe('form-type-description-reactive');
+      expect(signalLabel.querySelector('input').getAttribute('aria-describedby')).toBe('form-type-description-signal');
+      
+      const reactiveDescription = fixture.nativeElement.querySelector('#form-type-description-reactive');
+      const signalDescription = fixture.nativeElement.querySelector('#form-type-description-signal');
+      
+      expect(reactiveDescription).toBeTruthy();
+      expect(signalDescription).toBeTruthy();
+    });
+
+    it('should display form type descriptions', () => {
+      fixture.detectChanges();
+      
+      const reactiveDescription = fixture.nativeElement.querySelector('#form-type-description-reactive');
+      const signalDescription = fixture.nativeElement.querySelector('#form-type-description-signal');
+      
+      expect(reactiveDescription.textContent.trim()).toBe('Traditional Angular reactive forms');
+      expect(signalDescription.textContent.trim()).toBe('Experimental signal-based forms');
+    });
+  });
+
+  describe('Form Integration with Toggle System', () => {
+    it('should handle form submission from reactive form', () => {
+      const onAddTodoSpy = vi.spyOn(component, 'onAddTodo');
+      
+      component.onFormTypeChange('reactive');
+      fixture.detectChanges();
+      
+      // Simulate form submission (integration test)
+      const createRequest = {
+        title: 'Test from Reactive',
+        priority: 'high' as const
+      };
+      
+      component.onAddTodo(createRequest);
+      expect(onAddTodoSpy).toHaveBeenCalledWith(createRequest);
+    });
+
+    it('should handle form submission from signal form', () => {
+      const onAddTodoSpy = vi.spyOn(component, 'onAddTodo');
+      
+      component.onFormTypeChange('signal');
+      fixture.detectChanges();
+      
+      // Simulate form submission (integration test)
+      const createRequest = {
+        title: 'Test from Signal',
+        priority: 'low' as const
+      };
+      
+      component.onAddTodo(createRequest);
+      expect(onAddTodoSpy).toHaveBeenCalledWith(createRequest);
+    });
+
+    it('should maintain consistent onAddTodo behavior across form types', () => {
+      const createRequest = {
+        title: 'Consistent Test',
+        description: 'Test Description',
+        priority: 'medium' as const
+      };
+      
+      // Test with reactive form
+      component.onFormTypeChange('reactive');
+      component.onAddTodo(createRequest);
+      expect(mockTodoService.addTodoWithValidation).toHaveBeenCalledWith(createRequest);
+      
+      // Reset mock
+      mockTodoService.addTodoWithValidation.mockClear();
+      
+      // Test with signal form
+      component.onFormTypeChange('signal');
+      component.onAddTodo(createRequest);
+      expect(mockTodoService.addTodoWithValidation).toHaveBeenCalledWith(createRequest);
+    });
+
+    it('should not interfere with existing TodoItem functionality when toggling forms', () => {
+      const onDeleteTodoSpy = vi.spyOn(component, 'onDeleteTodo');
+      const onToggleTodoSpy = vi.spyOn(component, 'onToggleTodo');
+      
+      // Switch form types and verify TodoItem interactions still work
+      component.onFormTypeChange('signal');
+      fixture.detectChanges();
+      
+      component.onDeleteTodo('test-id');
+      component.onToggleTodo('test-id');
+      
+      expect(onDeleteTodoSpy).toHaveBeenCalledWith('test-id');
+      expect(onToggleTodoSpy).toHaveBeenCalledWith('test-id');
+    });
+  });
 });
