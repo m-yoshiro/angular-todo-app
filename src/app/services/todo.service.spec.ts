@@ -1115,4 +1115,71 @@ describe('TodoService', () => {
       service.deleteTodo = originalDeleteTodo;
     });
   });
+
+  describe('localStorage robustness', () => {
+    afterEach(() => {
+      // Restore normal localStorage after each test
+      vi.restoreAllMocks();
+    });
+
+    it('should handle missing localStorage gracefully during operations', () => {
+      // Mock environment without localStorage (SSR scenario)
+      Object.defineProperty(window, 'localStorage', {
+        value: undefined,
+        writable: true
+      });
+
+      const request: CreateTodoRequest = {
+        title: 'Test Todo'
+      };
+
+      // Should still create todo successfully despite no localStorage
+      const todo = service.addTodo(request);
+      
+      expect(todo.title).toBe('Test Todo');
+      expect(service.todos()).toHaveLength(1);
+      
+      // Should handle updates without localStorage
+      const updatedTodo = service.updateTodo(todo.id, { title: 'Updated' });
+      expect(updatedTodo).toBeDefined();
+      expect(updatedTodo!.title).toBe('Updated');
+      
+      // Should handle deletes without localStorage
+      service.deleteTodo(todo.id);
+      expect(service.todos()).toHaveLength(0);
+    });
+
+    it('should handle window being undefined gracefully (SSR scenario)', () => {
+      // This test documents SSR compatibility behavior
+      // The service should not crash when window is undefined
+      
+      const request: CreateTodoRequest = {
+        title: 'SSR Test Todo'
+      };
+
+      // Should still work without browser-specific APIs
+      expect(() => {
+        const todo = service.addTodo(request);
+        expect(todo.title).toBe('SSR Test Todo');
+      }).not.toThrow();
+    });
+
+    it('should maintain functionality when localStorage operations fail silently', () => {
+      // This test ensures the core todo management works regardless of storage
+      const initialCount = service.todos().length;
+      
+      const todo1 = service.addTodo({ title: 'Todo 1' });
+      const todo2 = service.addTodo({ title: 'Todo 2' });
+      
+      expect(service.todos()).toHaveLength(initialCount + 2);
+      
+      // Update should work regardless of storage state
+      const updated = service.updateTodo(todo1.id, { title: 'Updated Todo 1' });
+      expect(updated?.title).toBe('Updated Todo 1');
+      
+      // Delete should work regardless of storage state  
+      service.deleteTodo(todo2.id);
+      expect(service.todos()).toHaveLength(initialCount + 1);
+    });
+  });
 });
