@@ -17,15 +17,20 @@ export type {
   StorageOperationResult
 } from './todo-storage.service.interface';
 
-// Todo Validation Service Interface
+// Todo Validation Service Interfaces (focused interfaces)
 export type {
   ITodoValidationService,
+  ITodoBasicValidation,
+  ITodoFieldValidation,
+  ITodoBusinessRules,
+  ITodoValidationUtilities,
   ValidationResult,
   ValidationError,
   ValidationWarning,
   ValidationConfig,
-  ValidationSeverity
-} from './todo-validation.service.interface';
+  ValidationSeverity,
+  ValidationLimits
+} from './validation';
 
 // Confirmation Service Interface
 export type {
@@ -34,7 +39,7 @@ export type {
   ConfirmationResult
 } from './confirmation.service.interface';
 
-// Signal Utilities
+// Core Signal Utilities (commonly used)
 export type {
   SignalWithTimeout,
   WritableSignalWithTimeout,
@@ -42,20 +47,15 @@ export type {
   ErrorState,
   SuccessState,
   OperationState,
-  SignalServiceState,
   ReadonlySignal,
   SignalInterface,
   WritableSignalInterface,
-  SignalEvent,
-  SignalEventBus,
-  ComputedSignal,
-  SignalEffect,
   SignalCleanup,
-  SignalValidator,
-  SignalTransform,
-  SignalFilter,
   SignalSubscription
-} from './signal-utilities';
+} from './signals';
+
+// Advanced Signal Utilities (import explicitly when needed)
+export type * as AdvancedSignals from './signals/signal-utilities-advanced';
 
 /**
  * Collection of all service interfaces for easy reference and dependency injection.
