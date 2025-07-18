@@ -5,20 +5,20 @@
  */
 
 // User Feedback Service Interface
-export {
+export type {
   IUserFeedbackService,
   MessageSeverity
 } from './user-feedback.service.interface';
 
 // Todo Storage Service Interface
-export {
+export type {
   ITodoStorageService,
   StorageHealthInfo,
   StorageOperationResult
 } from './todo-storage.service.interface';
 
 // Todo Validation Service Interface
-export {
+export type {
   ITodoValidationService,
   ValidationResult,
   ValidationError,
@@ -28,14 +28,14 @@ export {
 } from './todo-validation.service.interface';
 
 // Confirmation Service Interface
-export {
+export type {
   IConfirmationService,
   ConfirmationOptions,
   ConfirmationResult
 } from './confirmation.service.interface';
 
 // Signal Utilities
-export {
+export type {
   SignalWithTimeout,
   WritableSignalWithTimeout,
   LoadingState,
@@ -88,4 +88,5 @@ export type ServiceInterfaceCollection = {
  * @description Provides convenient access to commonly used Angular types
  * without requiring additional imports.
  */
-export { Signal, WritableSignal, computed, effect } from '@angular/core';
+export type { Signal, WritableSignal } from '@angular/core';
+export { computed, effect } from '@angular/core';
