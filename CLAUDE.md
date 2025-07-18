@@ -195,8 +195,9 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 ## Development Process
 
 ### File Management Guidelines
-- **Temporary Files**: Use `/tmp/` directory for all temporary files (diff files, temporary outputs, etc.)
-- **No Temporary Files in Project**: Never create temporary files within the project directory
+- **Project Directory Only**: NEVER create, modify, or delete files outside the current project directory
+- **Temporary Files**: Use `./tmp/` directory (within project) for all temporary files (diff files, temporary outputs, etc.)
+- **No External File Access**: All file operations must be within the project boundary
 - **Clean Temporary Files**: Remove temporary files after use when possible
 
 ### TDD Development Workflow (MANDATORY)
