@@ -5,9 +5,10 @@
  * primitives for optimal performance and reactivity without zones.
  */
 
-import { Injectable, signal, computed, effect, inject, OnDestroy } from '@angular/core';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType, SortType, SortOrder } from '../models/todo.model';
 import { ConfirmationService } from './confirmation.service';
+import { UserFeedbackService } from './user-feedback.service';
 
 /**
  * Service responsible for managing todo items and providing reactive state management.
@@ -45,7 +46,7 @@ import { ConfirmationService } from './confirmation.service';
 @Injectable({
   providedIn: 'root'
 })
-export class TodoService implements OnDestroy {
+export class TodoService {
   /** Local storage key for persisting todos */
   private readonly STORAGE_KEY = 'todo-app-todos';
   
@@ -76,26 +77,6 @@ export class TodoService implements OnDestroy {
   /** Readonly signal exposing the current sort order for external consumption */
   readonly sortOrder = this._sortOrder.asReadonly();
   
-  /** Private signal for user feedback error messages */
-  private _errorMessage = signal<string | null>(null);
-  
-  /** Readonly signal exposing error messages for external consumption */
-  readonly errorMessage = this._errorMessage.asReadonly();
-  
-  /** Private signal for user feedback success messages */
-  private _successMessage = signal<string | null>(null);
-  
-  /** Readonly signal exposing success messages for external consumption */
-  readonly successMessage = this._successMessage.asReadonly();
-  
-  /** Private signal for loading state */
-  private _isLoading = signal<boolean>(false);
-  
-  /** Readonly signal exposing loading state for external consumption */
-  readonly isLoading = this._isLoading.asReadonly();
-
-  /** Private timeout ID for success message auto-clearing to prevent memory leaks */
-  private successTimeoutId?: number;
   
   /** 
    * Computed signal providing filtered todos based on current filter state.
@@ -132,6 +113,18 @@ export class TodoService implements OnDestroy {
 
   /** Injected ConfirmationService for user confirmations */
   private readonly confirmationService = inject(ConfirmationService);
+  
+  /** Injected UserFeedbackService for user feedback management */
+  private readonly userFeedbackService = inject(UserFeedbackService);
+
+  /** Readonly signal exposing error messages for external consumption */
+  readonly errorMessage = this.userFeedbackService.errorMessage;
+  
+  /** Readonly signal exposing success messages for external consumption */
+  readonly successMessage = this.userFeedbackService.successMessage;
+  
+  /** Readonly signal exposing loading state for external consumption */
+  readonly isLoading = this.userFeedbackService.isLoading;
 
   constructor() {
     // Set up automatic localStorage persistence using Angular 20 effects
@@ -144,17 +137,6 @@ export class TodoService implements OnDestroy {
     });
   }
 
-  /**
-   * Cleanup method called when the service is destroyed.
-   * @description Clears any pending success message timeouts to prevent memory leaks
-   * and ensure proper resource cleanup when the service is no longer needed.
-   */
-  ngOnDestroy(): void {
-    if (this.successTimeoutId) {
-      clearTimeout(this.successTimeoutId);
-      this.successTimeoutId = undefined;
-    }
-  }
   
   /** 
    * Computed signal providing real-time statistics about todos.
@@ -380,28 +362,28 @@ export class TodoService implements OnDestroy {
    * @returns Structured result with success flag, created todo, or error message
    */
   addTodoWithValidation(request: CreateTodoRequest): { success: boolean; todo?: Todo; error?: string } {
-    this.clearMessages();
-    this.setLoading(true);
+    this.userFeedbackService.clearMessages();
+    this.userFeedbackService.setLoadingState(true);
 
     try {
       // Validate the request using existing validation method
       const validation = this.validateCreateRequest(request);
       if (!validation.valid) {
-        this.setErrorMessage(validation.error!);
-        this.setLoading(false);
+        this.userFeedbackService.setErrorMessage(validation.error!);
+        this.userFeedbackService.setLoadingState(false);
         return { success: false, error: validation.error };
       }
 
       // Create the todo using existing method
       const newTodo = this.addTodo(request);
-      this.setSuccessMessage('Todo created successfully');
-      this.setLoading(false);
+      this.userFeedbackService.setSuccessMessage('Todo created successfully');
+      this.userFeedbackService.setLoadingState(false);
       
       return { success: true, todo: newTodo };
     } catch {
       const errorMessage = 'Failed to create todo. Please try again.';
-      this.setErrorMessage(errorMessage);
-      this.setLoading(false);
+      this.userFeedbackService.setErrorMessage(errorMessage);
+      this.userFeedbackService.setLoadingState(false);
       return { success: false, error: errorMessage };
     }
   }
@@ -415,8 +397,8 @@ export class TodoService implements OnDestroy {
    * @returns Structured result with success flag, updated todo, or error message
    */
   toggleTodoSafely(id: string): { success: boolean; todo?: Todo; error?: string } {
-    this.clearMessages();
-    this.setLoading(true);
+    this.userFeedbackService.clearMessages();
+    this.userFeedbackService.setLoadingState(true);
 
     try {
       // Attempt to toggle using existing method
@@ -424,20 +406,20 @@ export class TodoService implements OnDestroy {
       
       if (!toggledTodo) {
         const errorMessage = 'Todo not found or could not be toggled';
-        this.setErrorMessage(errorMessage);
-        this.setLoading(false);
+        this.userFeedbackService.setErrorMessage(errorMessage);
+        this.userFeedbackService.setLoadingState(false);
         return { success: false, error: errorMessage };
       }
 
       const statusMessage = toggledTodo.completed ? 'Todo marked as completed' : 'Todo marked as active';
-      this.setSuccessMessage(statusMessage);
-      this.setLoading(false);
+      this.userFeedbackService.setSuccessMessage(statusMessage);
+      this.userFeedbackService.setLoadingState(false);
       
       return { success: true, todo: toggledTodo };
     } catch {
       const errorMessage = 'Failed to toggle todo. Please try again.';
-      this.setErrorMessage(errorMessage);
-      this.setLoading(false);
+      this.userFeedbackService.setErrorMessage(errorMessage);
+      this.userFeedbackService.setLoadingState(false);
       return { success: false, error: errorMessage };
     }
   }
@@ -451,16 +433,16 @@ export class TodoService implements OnDestroy {
    * @returns Structured result with success flag, confirmation status, or error message
    */
   deleteTodoWithConfirmation(id: string): { success: boolean; confirmed: boolean; error?: string } {
-    this.clearMessages();
-    this.setLoading(true);
+    this.userFeedbackService.clearMessages();
+    this.userFeedbackService.setLoadingState(true);
 
     try {
       // Get confirmation from user
       const confirmed = this.confirmationService.confirm('Are you sure you want to delete this todo?');
       
       if (!confirmed) {
-        this.clearMessages(); // Don't show any messages for user cancellation
-        this.setLoading(false);
+        this.userFeedbackService.clearMessages(); // Don't show any messages for user cancellation
+        this.userFeedbackService.setLoadingState(false);
         return { success: false, confirmed: false };
       }
 
@@ -469,73 +451,23 @@ export class TodoService implements OnDestroy {
       
       if (!deleted) {
         const errorMessage = 'Todo not found or could not be deleted';
-        this.setErrorMessage(errorMessage);
-        this.setLoading(false);
+        this.userFeedbackService.setErrorMessage(errorMessage);
+        this.userFeedbackService.setLoadingState(false);
         return { success: false, confirmed: true, error: errorMessage };
       }
 
-      this.setSuccessMessage('Todo deleted successfully');
-      this.setLoading(false);
+      this.userFeedbackService.setSuccessMessage('Todo deleted successfully');
+      this.userFeedbackService.setLoadingState(false);
       
       return { success: true, confirmed: true };
     } catch {
       const errorMessage = 'Failed to delete todo. Please try again.';
-      this.setErrorMessage(errorMessage);
-      this.setLoading(false);
+      this.userFeedbackService.setErrorMessage(errorMessage);
+      this.userFeedbackService.setLoadingState(false);
       return { success: false, confirmed: true, error: errorMessage };
     }
   }
 
-  /**
-   * Clears all user feedback messages.
-   * @description Resets error and success messages to null for a clean state.
-   */
-  clearMessages(): void {
-    this._errorMessage.set(null);
-    this._successMessage.set(null);
-  }
-
-  /**
-   * Sets an error message for user feedback.
-   * @param message - The error message to display to the user
-   */
-  setErrorMessage(message: string): void {
-    this._errorMessage.set(message);
-    this._successMessage.set(null); // Clear success message when setting error
-  }
-
-  /**
-   * Sets a success message for user feedback with auto-clearing after 3 seconds.
-   * @description Sets the success message and automatically clears it after 3 seconds
-   * to provide toast-like behavior for better user experience. Error messages are cleared
-   * when success messages are set to avoid conflicting feedback. Includes proper memory
-   * management to prevent timeout leaks when called multiple times rapidly.
-   * @param message - The success message to display to the user
-   */
-  setSuccessMessage(message: string): void {
-    // Clear any existing timeout to prevent memory leaks from rapid successive calls
-    if (this.successTimeoutId) {
-      clearTimeout(this.successTimeoutId);
-      this.successTimeoutId = undefined;
-    }
-
-    this._successMessage.set(message);
-    this._errorMessage.set(null); // Clear error message when setting success
-    
-    // Auto-clear success message after 3 seconds and store timeout ID for cleanup
-    this.successTimeoutId = window.setTimeout(() => {
-      this._successMessage.set(null);
-      this.successTimeoutId = undefined; // Clear the timeout ID when done
-    }, 3000);
-  }
-
-  /**
-   * Sets the loading state for user feedback.
-   * @param loading - True if an operation is in progress, false otherwise
-   */
-  setLoading(loading: boolean): void {
-    this._isLoading.set(loading);
-  }
 
   /**
    * Sorts an array of todos based on the specified criteria and order.
