@@ -3,6 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { vi, expect } from 'vitest';
 import { TodoListComponent } from './todo-list.component';
 import { TodoService } from '../../services/todo.service';
+import { UserFeedbackService } from '../../services/user-feedback.service';
 import { Todo, CreateTodoRequest, FilterType } from '../../models/todo.model';
 
 describe('TodoListComponent', () => {
@@ -30,10 +31,16 @@ describe('TodoListComponent', () => {
     addTodoWithValidation: ReturnType<typeof vi.fn>;
     deleteTodoWithConfirmation: ReturnType<typeof vi.fn>;
     toggleTodoSafely: ReturnType<typeof vi.fn>;
-    // User feedback signals
+  };
+
+  let mockUserFeedbackService: {
     errorMessage: ReturnType<typeof vi.fn>;
     successMessage: ReturnType<typeof vi.fn>;
     isLoading: ReturnType<typeof vi.fn>;
+    setErrorMessage: ReturnType<typeof vi.fn>;
+    setSuccessMessage: ReturnType<typeof vi.fn>;
+    setLoadingState: ReturnType<typeof vi.fn>;
+    clearMessages: ReturnType<typeof vi.fn>;
   };
 
   const mockTodos: Todo[] = [
@@ -90,18 +97,26 @@ describe('TodoListComponent', () => {
       // Enhanced methods with validation and confirmation
       addTodoWithValidation: vi.fn().mockReturnValue({ success: true, todo: mockTodos[0] }),
       deleteTodoWithConfirmation: vi.fn().mockReturnValue({ success: true, confirmed: true }),
-      toggleTodoSafely: vi.fn().mockReturnValue({ success: true, todo: mockTodos[0] }),
-      // User feedback signals
+      toggleTodoSafely: vi.fn().mockReturnValue({ success: true, todo: mockTodos[0] })
+    };
+
+    // Mock UserFeedbackService with signal methods
+    mockUserFeedbackService = {
       errorMessage: vi.fn().mockReturnValue(null),
       successMessage: vi.fn().mockReturnValue(null),
-      isLoading: vi.fn().mockReturnValue(false)
+      isLoading: vi.fn().mockReturnValue(false),
+      setErrorMessage: vi.fn(),
+      setSuccessMessage: vi.fn(),
+      setLoadingState: vi.fn(),
+      clearMessages: vi.fn()
     };
 
     await TestBed.configureTestingModule({
       imports: [TodoListComponent],
       providers: [
         provideZonelessChangeDetection(),
-        { provide: TodoService, useValue: mockTodoService }
+        { provide: TodoService, useValue: mockTodoService },
+        { provide: UserFeedbackService, useValue: mockUserFeedbackService }
       ]
     }).compileComponents();
 
@@ -116,6 +131,10 @@ describe('TodoListComponent', () => {
 
     it('should inject TodoService', () => {
       expect(component.todoService).toBeTruthy();
+    });
+
+    it('should inject UserFeedbackService', () => {
+      expect(component.userFeedbackService).toBeTruthy();
     });
 
     it('should render without errors', () => {
@@ -141,18 +160,18 @@ describe('TodoListComponent', () => {
       expect(component.isLoading).toBeDefined();
     });
 
-    it('should expose errorMessage signal from service', () => {
-      expect(component.errorMessage).toBe(mockTodoService.errorMessage);
+    it('should expose errorMessage signal from UserFeedbackService', () => {
+      expect(component.errorMessage).toBe(mockUserFeedbackService.errorMessage);
       expect(component.errorMessage()).toBeNull();
     });
 
-    it('should expose successMessage signal from service', () => {
-      expect(component.successMessage).toBe(mockTodoService.successMessage);
+    it('should expose successMessage signal from UserFeedbackService', () => {
+      expect(component.successMessage).toBe(mockUserFeedbackService.successMessage);
       expect(component.successMessage()).toBeNull();
     });
 
-    it('should expose isLoading signal from service', () => {
-      expect(component.isLoading).toBe(mockTodoService.isLoading);
+    it('should expose isLoading signal from UserFeedbackService', () => {
+      expect(component.isLoading).toBe(mockUserFeedbackService.isLoading);
       expect(component.isLoading()).toBe(false);
     });
 
@@ -220,9 +239,9 @@ describe('TodoListComponent', () => {
 
   describe('User Feedback UI', () => {
     it('should not display feedback section when no feedback states are active', () => {
-      mockTodoService.isLoading.mockReturnValue(false);
-      mockTodoService.errorMessage.mockReturnValue(null);
-      mockTodoService.successMessage.mockReturnValue(null);
+      mockUserFeedbackService.isLoading.mockReturnValue(false);
+      mockUserFeedbackService.errorMessage.mockReturnValue(null);
+      mockUserFeedbackService.successMessage.mockReturnValue(null);
       
       fixture.detectChanges();
       
@@ -236,7 +255,7 @@ describe('TodoListComponent', () => {
     });
 
     it('should display loading indicator when isLoading is true', () => {
-      mockTodoService.isLoading.mockReturnValue(true);
+      mockUserFeedbackService.isLoading.mockReturnValue(true);
       
       fixture.detectChanges();
       
@@ -257,7 +276,7 @@ describe('TodoListComponent', () => {
 
     it('should display error message when errorMessage exists', () => {
       const errorText = 'Something went wrong!';
-      mockTodoService.errorMessage.mockReturnValue(errorText);
+      mockUserFeedbackService.errorMessage.mockReturnValue(errorText);
       
       fixture.detectChanges();
       
@@ -278,7 +297,7 @@ describe('TodoListComponent', () => {
 
     it('should display success message when successMessage exists', () => {
       const successText = 'Todo created successfully!';
-      mockTodoService.successMessage.mockReturnValue(successText);
+      mockUserFeedbackService.successMessage.mockReturnValue(successText);
       
       fixture.detectChanges();
       
@@ -298,9 +317,9 @@ describe('TodoListComponent', () => {
     });
 
     it('should display multiple feedback states simultaneously if needed', () => {
-      mockTodoService.isLoading.mockReturnValue(true);
-      mockTodoService.errorMessage.mockReturnValue('Error occurred');
-      mockTodoService.successMessage.mockReturnValue('Success message');
+      mockUserFeedbackService.isLoading.mockReturnValue(true);
+      mockUserFeedbackService.errorMessage.mockReturnValue('Error occurred');
+      mockUserFeedbackService.successMessage.mockReturnValue('Success message');
       
       fixture.detectChanges();
       
@@ -314,7 +333,7 @@ describe('TodoListComponent', () => {
     });
 
     it('should have proper accessibility structure for feedback section', () => {
-      mockTodoService.isLoading.mockReturnValue(true);
+      mockUserFeedbackService.isLoading.mockReturnValue(true);
       
       fixture.detectChanges();
       
@@ -330,9 +349,9 @@ describe('TodoListComponent', () => {
 
     it('should use Angular 20 @if control flow for conditional rendering', () => {
       // Test that conditional rendering works properly with signals
-      mockTodoService.isLoading.mockReturnValue(false);
-      mockTodoService.errorMessage.mockReturnValue(null);
-      mockTodoService.successMessage.mockReturnValue(null);
+      mockUserFeedbackService.isLoading.mockReturnValue(false);
+      mockUserFeedbackService.errorMessage.mockReturnValue(null);
+      mockUserFeedbackService.successMessage.mockReturnValue(null);
       
       fixture.detectChanges();
       

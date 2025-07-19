@@ -9,6 +9,7 @@
 import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TodoService } from '../../services/todo.service';
+import { UserFeedbackService } from '../../services/user-feedback.service';
 import { TodoItemComponent } from '../todo-item/todo-item.component';
 import { AddTodoFormComponent } from '../add-todo-form/add-todo-form.component';
 import { TodoFilterComponent } from '../todo-filter/todo-filter.component';
@@ -36,6 +37,11 @@ export class TodoListComponent {
   public readonly todoService = inject(TodoService);
 
   /**
+   * Injected UserFeedbackService for accessing user feedback state
+   */
+  public readonly userFeedbackService = inject(UserFeedbackService);
+
+  /**
    * Computed signal for accessing sorted and filtered todos reactively
    */
   public readonly todos = computed(() => this.todoService.sortedAndFilteredTodos());
@@ -46,19 +52,19 @@ export class TodoListComponent {
   public readonly stats = computed(() => this.todoService.stats());
 
   /**
-   * Signal for accessing error messages from the service
+   * Signal for accessing error messages from the feedback service
    */
-  public readonly errorMessage = this.todoService.errorMessage;
+  public readonly errorMessage = this.userFeedbackService.errorMessage;
 
   /**
-   * Signal for accessing success messages from the service
+   * Signal for accessing success messages from the feedback service
    */
-  public readonly successMessage = this.todoService.successMessage;
+  public readonly successMessage = this.userFeedbackService.successMessage;
 
   /**
-   * Signal for accessing loading state from the service
+   * Signal for accessing loading state from the feedback service
    */
-  public readonly isLoading = this.todoService.isLoading;
+  public readonly isLoading = this.userFeedbackService.isLoading;
 
   /**
    * Handles form submission from AddTodoForm component.

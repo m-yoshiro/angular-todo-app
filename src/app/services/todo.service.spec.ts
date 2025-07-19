@@ -3,11 +3,13 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { vi } from 'vitest';
 import { TodoService } from './todo.service';
 import { ConfirmationService } from './confirmation.service';
+import { UserFeedbackService } from './user-feedback.service';
 import { CreateTodoRequest, UpdateTodoRequest } from '../models/todo.model';
 
 describe('TodoService', () => {
   let service: TodoService;
   let confirmationService: ConfirmationService;
+  let userFeedbackService: UserFeedbackService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -15,6 +17,7 @@ describe('TodoService', () => {
     });
     service = TestBed.inject(TodoService);
     confirmationService = TestBed.inject(ConfirmationService);
+    userFeedbackService = TestBed.inject(UserFeedbackService);
   });
 
   it('should be created', () => {
@@ -674,166 +677,13 @@ describe('TodoService', () => {
     });
   });
 
-  describe('user feedback signals and message management', () => {
-    it('should initialize feedback signals with default values', () => {
-      expect(service.errorMessage()).toBeNull();
-      expect(service.successMessage()).toBeNull();
-      expect(service.isLoading()).toBe(false);
-    });
-
-    it('should set and clear error messages', () => {
-      service.setErrorMessage('Test error');
-      expect(service.errorMessage()).toBe('Test error');
-      expect(service.successMessage()).toBeNull(); // Should clear success message
-
-      service.clearMessages();
-      expect(service.errorMessage()).toBeNull();
-      expect(service.successMessage()).toBeNull();
-    });
-
-    it('should set and clear success messages', () => {
-      service.setSuccessMessage('Test success');
-      expect(service.successMessage()).toBe('Test success');
-      expect(service.errorMessage()).toBeNull(); // Should clear error message
-
-      service.clearMessages();
-      expect(service.errorMessage()).toBeNull();
-      expect(service.successMessage()).toBeNull();
-    });
-
-    it('should set loading state', () => {
-      service.setLoading(true);
-      expect(service.isLoading()).toBe(true);
-
-      service.setLoading(false);
-      expect(service.isLoading()).toBe(false);
-    });
-
-    it('should clear success message when setting error message', () => {
-      service.setSuccessMessage('Success message');
-      service.setErrorMessage('Error message');
-      
-      expect(service.errorMessage()).toBe('Error message');
-      expect(service.successMessage()).toBeNull();
-    });
-
-    it('should clear error message when setting success message', () => {
-      service.setErrorMessage('Error message');
-      service.setSuccessMessage('Success message');
-      
-      expect(service.successMessage()).toBe('Success message');
-      expect(service.errorMessage()).toBeNull();
-    });
-
-    describe('Memory Management', () => {
-      beforeEach(() => {
-        // Mock setTimeout and clearTimeout for testing
-        vi.useFakeTimers();
-      });
-
-      afterEach(() => {
-        vi.useRealTimers();
-      });
-
-      it('should clear existing timeout when setting new success message', () => {
-        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-        const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
-
-        // Set first success message
-        service.setSuccessMessage('First message');
-        expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-        expect(clearTimeoutSpy).not.toHaveBeenCalled();
-
-        // Set second success message - should clear first timeout
-        service.setSuccessMessage('Second message');
-        expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
-        expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
-
-        expect(service.successMessage()).toBe('Second message');
-      });
-
-      it('should clear timeout on service destruction', () => {
-        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-
-        // Set success message to create timeout
-        service.setSuccessMessage('Test message');
-        expect(service.successMessage()).toBe('Test message');
-
-        // Call ngOnDestroy
-        service.ngOnDestroy();
-        expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
-      });
-
-      it('should handle ngOnDestroy when no timeout is set', () => {
-        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-
-        // Call ngOnDestroy without setting any message
-        service.ngOnDestroy();
-        expect(clearTimeoutSpy).not.toHaveBeenCalled();
-      });
-
-      it('should auto-clear success message after 3 seconds', () => {
-        service.setSuccessMessage('Test message');
-        expect(service.successMessage()).toBe('Test message');
-
-        // Fast-forward time by 3 seconds
-        vi.advanceTimersByTime(3000);
-
-        expect(service.successMessage()).toBeNull();
-      });
-
-      it('should prevent memory leaks with rapid successive calls', () => {
-        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-        const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
-
-        // Rapidly set multiple success messages
-        service.setSuccessMessage('Message 1');
-        service.setSuccessMessage('Message 2');
-        service.setSuccessMessage('Message 3');
-        service.setSuccessMessage('Message 4');
-
-        // Should have called setTimeout 4 times and clearTimeout 3 times
-        expect(setTimeoutSpy).toHaveBeenCalledTimes(4);
-        expect(clearTimeoutSpy).toHaveBeenCalledTimes(3);
-
-        // Only the last message should be visible
-        expect(service.successMessage()).toBe('Message 4');
-
-        // Fast-forward and verify only one timeout fires
-        vi.advanceTimersByTime(3000);
-        expect(service.successMessage()).toBeNull();
-      });
-
-      it('should clear timeout ID after timeout completes naturally', () => {
-        const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-
-        service.setSuccessMessage('Test message');
-        expect(service.successMessage()).toBe('Test message');
-
-        // Fast-forward time by 3 seconds to let timeout complete
-        vi.advanceTimersByTime(3000);
-        expect(service.successMessage()).toBeNull();
-
-        // Now calling ngOnDestroy should not call clearTimeout since ID is already cleared
-        service.ngOnDestroy();
-        expect(clearTimeoutSpy).not.toHaveBeenCalled();
-      });
-
-      it('should use window.setTimeout for proper typing', () => {
-        const windowSetTimeoutSpy = vi.spyOn(window, 'setTimeout');
-
-        service.setSuccessMessage('Test message');
-
-        expect(windowSetTimeoutSpy).toHaveBeenCalledWith(
-          expect.any(Function),
-          3000
-        );
-      });
-    });
-  });
 
   describe('addTodoWithValidation', () => {
     it('should create todo successfully with valid request', () => {
+      const clearMessagesSpy = vi.spyOn(userFeedbackService, 'clearMessages');
+      const setLoadingSpy = vi.spyOn(userFeedbackService, 'setLoadingState');
+      const setSuccessSpy = vi.spyOn(userFeedbackService, 'setSuccessMessage');
+
       const request: CreateTodoRequest = {
         title: 'Valid Todo',
         description: 'Valid description',
@@ -846,9 +696,10 @@ describe('TodoService', () => {
       expect(result.todo).toBeDefined();
       expect(result.todo!.title).toBe('Valid Todo');
       expect(result.error).toBeUndefined();
-      expect(service.successMessage()).toBe('Todo created successfully');
-      expect(service.errorMessage()).toBeNull();
-      expect(service.isLoading()).toBe(false);
+      expect(clearMessagesSpy).toHaveBeenCalled();
+      expect(setLoadingSpy).toHaveBeenCalledWith(true);
+      expect(setLoadingSpy).toHaveBeenCalledWith(false);
+      expect(setSuccessSpy).toHaveBeenCalledWith('Todo created successfully');
       expect(service.todos().length).toBe(1);
     });
 
@@ -902,8 +753,8 @@ describe('TodoService', () => {
     });
 
     it('should clear messages before processing', () => {
-      service.setErrorMessage('Previous error');
-      service.setSuccessMessage('Previous success');
+      userFeedbackService.setErrorMessage('Previous error');
+      userFeedbackService.setSuccessMessage('Previous success');
 
       const request: CreateTodoRequest = {
         title: 'Valid Todo'
@@ -985,8 +836,8 @@ describe('TodoService', () => {
     });
 
     it('should clear messages before processing', () => {
-      service.setErrorMessage('Previous error');
-      service.setSuccessMessage('Previous success');
+      userFeedbackService.setErrorMessage('Previous error');
+      userFeedbackService.setSuccessMessage('Previous success');
 
       service.toggleTodoSafely(todo.id);
 
@@ -1068,8 +919,8 @@ describe('TodoService', () => {
 
     it('should clear messages before processing', () => {
       vi.spyOn(confirmationService, 'confirm').mockReturnValue(true);
-      service.setErrorMessage('Previous error');
-      service.setSuccessMessage('Previous success');
+      userFeedbackService.setErrorMessage('Previous error');
+      userFeedbackService.setSuccessMessage('Previous success');
 
       service.deleteTodoWithConfirmation(todo.id);
 
