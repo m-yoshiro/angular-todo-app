@@ -336,28 +336,59 @@ This successful extraction **validates the refactoring pattern** for the remaini
 
 ---
 
-### **PR #74: TodoStorageService Implementation**
+### **PR #74: TodoStorageService Implementation (REVISED)**
 **Branch**: `feature/74-todo-storage-service`  
-**Estimated Time**: 3-4 hours  
+**Estimated Time**: 2-3 hours (reduced)  
 **Dependencies**: PR #72
 
+**🔄 REVISED APPROACH** *Based on expert feedback (Gemini review)*
+
+**Critical Issue Identified:**
+Original plan had sync-to-async compatibility problem that would break behavioral compatibility. **Revised to synchronous-first approach**.
+
 **Objectives:**
-- Abstract storage behind testable interface
-- Enable different storage implementations
-- Improve error handling for storage operations
+- Pure extraction with **zero breaking changes**
+- Maintain synchronous API for behavioral compatibility
+- Apply Interface Segregation Principle (simpler, focused interface)
+- Enable dependency injection for better testability
+
+**Revised Implementation Strategy:**
+
+**Phase 1: Synchronous Storage Service (This PR)**
+- Maintains exact behavioral compatibility
+- Direct extraction of existing localStorage logic
+- Simplified interface focused on core responsibility (SRP)
+
+**Phase 2: Async Enhancement (Future PR #75b)**
+- Convert to async operations with loading states
+- Add advanced health monitoring and performance tracking
+- Implement data corruption detection and recovery
 
 **Tasks:**
-1. **Create TodoStorageService**
+1. **Create Simplified TodoStorageService**
    ```typescript
+   // Simplified synchronous interface (SRP compliant)
+   export interface ITodoStorageService {
+     loadTodos(): Todo[];
+     saveTodos(todos: Todo[]): void;
+     clearStorage(): void;
+     isAvailable(): boolean;
+     getStorageHealth(): { available: boolean; hasError: boolean };
+   }
+
    @Injectable({ providedIn: 'root' })
    export class TodoStorageService implements ITodoStorageService {
      private readonly STORAGE_KEY = 'todo-app-todos';
+     private hasError = false;
 
      loadTodos(): Todo[] {
        try {
+         this.hasError = false;
          if (!this.isAvailable()) return [];
+         
          const stored = localStorage.getItem(this.STORAGE_KEY);
          if (!stored) return [];
+         
          const todos = JSON.parse(stored) as Todo[];
          return todos.map(todo => ({
            ...todo,
@@ -366,6 +397,7 @@ This successful extraction **validates the refactoring pattern** for the remaini
            dueDate: todo.dueDate ? new Date(todo.dueDate) : undefined
          }));
        } catch (error) {
+         this.hasError = true;
          console.warn('Failed to load todos from localStorage:', error);
          return [];
        }
@@ -373,15 +405,35 @@ This successful extraction **validates the refactoring pattern** for the remaini
 
      saveTodos(todos: Todo[]): void {
        try {
+         this.hasError = false;
          if (!this.isAvailable()) return;
          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(todos));
        } catch (error) {
+         this.hasError = true;
          console.warn('Failed to save todos to localStorage:', error);
+       }
+     }
+
+     clearStorage(): void {
+       try {
+         this.hasError = false;
+         if (!this.isAvailable()) return;
+         localStorage.removeItem(this.STORAGE_KEY);
+       } catch (error) {
+         this.hasError = true;
+         console.warn('Failed to clear todos from localStorage:', error);
        }
      }
 
      isAvailable(): boolean {
        return typeof window !== 'undefined' && !!window.localStorage;
+     }
+
+     getStorageHealth(): { available: boolean; hasError: boolean } {
+       return {
+         available: this.isAvailable(),
+         hasError: this.hasError
+       };
      }
    }
    ```
@@ -390,30 +442,77 @@ This successful extraction **validates the refactoring pattern** for the remaini
    ```typescript
    export class MockTodoStorageService implements ITodoStorageService {
      private mockData: Todo[] = [];
+     private mockError = false;
      
-     loadTodos(): Todo[] { return [...this.mockData]; }
-     saveTodos(todos: Todo[]): void { this.mockData = [...todos]; }
-     clearStorage(): void { this.mockData = []; }
-     isAvailable(): boolean { return true; }
+     loadTodos(): Todo[] { 
+       if (this.mockError) throw new Error('Mock storage error');
+       return [...this.mockData]; 
+     }
+     
+     saveTodos(todos: Todo[]): void { 
+       if (this.mockError) throw new Error('Mock storage error');
+       this.mockData = [...todos]; 
+     }
+     
+     clearStorage(): void { 
+       if (this.mockError) throw new Error('Mock storage error');
+       this.mockData = []; 
+     }
+     
+     isAvailable(): boolean { return !this.mockError; }
+     
+     getStorageHealth(): { available: boolean; hasError: boolean } {
+       return { available: !this.mockError, hasError: this.mockError };
+     }
+
+     // Test utilities
+     setMockError(hasError: boolean): void { this.mockError = hasError; }
+     setMockData(todos: Todo[]): void { this.mockData = [...todos]; }
    }
    ```
 
-3. **Add Comprehensive Error Handling Tests**
-   - Test storage quota exceeded scenarios
-   - Test corrupted data recovery
-   - Test SSR compatibility
-   - Test browser environment detection
+3. **TodoService Integration (Zero Breaking Changes)**
+   ```typescript
+   constructor(
+     private storageService = inject(TodoStorageService)
+   ) {
+     // Maintains exact same synchronous initialization
+     this._todos = signal<Todo[]>(this.storageService.loadTodos());
+   }
+
+   // Replace localStorage methods with service calls
+   private saveTodosToStorage(): void {
+     this.storageService.saveTodos(this._todos());
+   }
+   ```
+
+4. **TDD Implementation (2-3 hours)**
+   - **Phase 1** (1h): Core synchronous storage operations
+   - **Phase 2** (45m): Error handling and SSR compatibility
+   - **Phase 3** (30m): TodoService integration via dependency injection
 
 **Success Criteria:**
-- [ ] TodoStorageService handles all storage operations
-- [ ] Robust error handling for all failure scenarios
-- [ ] Mock implementation enables isolated testing
-- [ ] 100% test coverage including error paths
+- [ ] ✅ **Zero Breaking Changes**: All existing TodoService tests pass unchanged
+- [ ] ✅ **Behavioral Compatibility**: Maintains exact same synchronous behavior
+- [ ] ✅ **SRP Compliance**: Focused interface with core storage responsibility only
+- [ ] ✅ **Dependency Injection**: TodoService uses injected storage service
+- [ ] ✅ **100% Test Coverage**: Comprehensive unit tests for new service
+- [ ] ✅ **SSR Compatibility**: Graceful handling of server-side rendering
 
 **Files Created:**
 - `src/app/services/todo-storage.service.ts`
 - `src/app/services/todo-storage.service.spec.ts`
 - `src/app/services/mocks/mock-todo-storage.service.ts`
+
+**Files Modified:**
+- `src/app/services/interfaces/todo-storage.service.interface.ts` (simplified interface)
+- `src/app/services/todo.service.ts` (integration via dependency injection)
+
+**Benefits of Revised Approach:**
+- ✅ **Risk Mitigation**: Eliminates sync-to-async compatibility risk
+- ✅ **Incremental Delivery**: Immediate value through service extraction
+- ✅ **Interface Segregation**: Simpler, focused interface following SRP
+- ✅ **Easy Rollback**: Pure extraction with minimal architectural changes
 
 ---
 
@@ -601,8 +700,9 @@ This successful extraction **validates the refactoring pattern** for the remaini
   - **Architecture**: SRP compliant, memory-safe, 100% behavioral compatibility
 
 🔄 **Next Phase:**
-- **PR #74**: TodoStorageService Implementation (Ready to start)
+- **PR #74**: TodoStorageService Implementation (Ready to start - REVISED to synchronous approach)
 - **PR #75**: TodoValidationService Implementation (Ready to start) 
+- **PR #75b**: Async Storage Enhancement (New - Future async upgrade for TodoStorageService)
 - **PR #76**: Integration Tests (Depends on #74, #75)
 
 ### **Pull Request Schedule**
@@ -612,11 +712,12 @@ This successful extraction **validates the refactoring pattern** for the remaini
 | #71 | 2-3 hours | Test Coverage Analysis | 100% test coverage baseline | None | ⏭️ *Skipped* |
 | #72 | 2-3 hours | Interface Definitions | Service contracts & interfaces | #71 | ✅ *Merged* |
 | #73 | 3-4 hours | UserFeedbackService | Message handling service | #72 | ✅ *Completed* |
-| #74 | 3-4 hours | TodoStorageService | Storage abstraction service | #72 | 🔄 *Ready* |
+| #74 | 2-3 hours | TodoStorageService | Synchronous storage service (REVISED) | #72 | 🔄 *Ready* |
 | #75 | 3-4 hours | TodoValidationService | Validation service | #72 | 🔄 *Ready* |
+| #75b | 2-3 hours | Async Storage Enhancement | Async storage upgrade | #74 | 📋 *Future* |
 | #76 | 4-5 hours | Integration Testing | Complete test suite | #73, #74, #75 | ⏳ *Pending* |
 
-**Total Estimated Time: 16-20 hours (3-4 days)**
+**Total Estimated Time: 16-20 hours (3-4 days)** *(PR #75b optional future enhancement)*
 
 ### **Development Schedule**
 
@@ -625,8 +726,8 @@ This successful extraction **validates the refactoring pattern** for the remaini
 - Afternoon: PR #72 (Interfaces) - 2-3 hours
 
 **Day 2:**
-- Morning: PR #73 (UserFeedbackService) - 3-4 hours
-- Afternoon: PR #74 (TodoStorageService) - 3-4 hours
+- Morning: PR #73 (UserFeedbackService) - 3-4 hours ✅ *Completed*
+- Afternoon: PR #74 (TodoStorageService) - 2-3 hours (REVISED)
 
 **Day 3:**
 - Morning: PR #75 (TodoValidationService) - 3-4 hours
@@ -647,10 +748,10 @@ After PR #72 is merged, PRs #73, #74, and #75 can be developed in parallel since
 
 ### **Immediate Actions**
 
-1. **Begin PR #71**: Test Coverage Analysis & Gap Filling
-   - Create branch: `feature/71-test-coverage-analysis`
-   - Run coverage analysis to identify gaps
-   - Add missing unit tests for localStorage error handling
+1. **Begin PR #74**: TodoStorageService Implementation (REVISED)
+   - Create branch: `feature/74-todo-storage-service`
+   - Follow synchronous-first approach for zero breaking changes
+   - Apply TDD methodology with simplified interface
 
 2. **Review Process Setup**
    - Establish PR review checklist
@@ -704,4 +805,23 @@ After PR #72 is merged, PRs #73, #74, and #75 can be developed in parallel since
 
 ---
 
-*This plan balances the expert recommendations of Kent Beck (simplicity & testing), Martin Fowler (service patterns & refactoring), and Robert C. Martin (SOLID principles & clean architecture) to create a pragmatic approach to improving the TodoService architecture.*
+## **🔄 REVISION SUMMARY**
+
+**Critical Update (Based on Expert Feedback):**
+The original PR #74 plan was **revised** after expert review identified a sync-to-async compatibility issue that would break behavioral compatibility.
+
+**Key Changes:**
+1. **Synchronous-First Approach**: PR #74 now implements synchronous storage service to maintain exact behavioral compatibility
+2. **Simplified Interface**: Applied Interface Segregation Principle for focused, core storage responsibility
+3. **Future Async Enhancement**: Deferred advanced async features to future PR #75b
+4. **Risk Mitigation**: Eliminated breaking changes through pure extraction pattern
+5. **Reduced Timeline**: 2-3 hours (down from 3-4 hours) due to simplified scope
+
+**Expert Validation:**
+This revision addresses feedback from Gemini review focusing on:
+- Maintaining behavioral compatibility
+- Applying SOLID principles correctly
+- Reducing implementation risk
+- Following incremental delivery patterns
+
+*This plan balances the expert recommendations of Kent Beck (simplicity & testing), Martin Fowler (service patterns & refactoring), Robert C. Martin (SOLID principles & clean architecture), and Gemini's architectural review to create a pragmatic, risk-mitigated approach to improving the TodoService architecture.*
