@@ -10,6 +10,7 @@ import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoStatistics, FilterType,
 import { ConfirmationService } from './confirmation.service';
 import { UserFeedbackService } from './user-feedback.service';
 import { TodoStorageService } from './todo-storage.service';
+import { TodoValidationService } from './todo-validation.service';
 
 /**
  * Service responsible for managing todo items and providing reactive state management.
@@ -126,6 +127,9 @@ export class TodoService {
 
   /** Injected storage service for todo persistence */
   private readonly storageService = inject(TodoStorageService);
+
+  /** Injected validation service for todo field validation */
+  private readonly validationService = inject(TodoValidationService);
 
   constructor() {
     // Load todos from storage during initialization (maintains exact same behavior)
@@ -315,30 +319,20 @@ export class TodoService {
   }
 
   /**
-   * Validates a todo creation request.
-   * @description Checks if the creation request has all required fields and valid data.
-   * This method abstracts validation logic from components to improve separation of concerns.
+   * Validates a todo creation request using the centralized validation service.
+   * @description Delegates validation to TodoValidationService while maintaining
+   * backward compatibility with existing API. This method now serves as a wrapper
+   * around the comprehensive validation service.
    * @param request - The todo creation request to validate
    * @returns Validation result with success flag and optional error message
    */
   validateCreateRequest(request: CreateTodoRequest): { valid: boolean; error?: string } {
-    if (!request) {
-      return { valid: false, error: 'Request is required' };
-    }
-
-    if (!request.title || !request.title.trim()) {
-      return { valid: false, error: 'Title is required' };
-    }
-
-    if (request.title.trim().length > 200) {
-      return { valid: false, error: 'Title cannot exceed 200 characters' };
-    }
-
-    if (request.description && request.description.length > 1000) {
-      return { valid: false, error: 'Description cannot exceed 1000 characters' };
-    }
-
-    return { valid: true };
+    const validationResult = this.validationService.validateCreateRequest(request);
+    
+    return {
+      valid: validationResult.valid,
+      error: validationResult.error
+    };
   }
 
   /**
