@@ -7,8 +7,9 @@
 
 import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors, FormArray } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormArray } from '@angular/forms';
 import { CreateTodoRequest } from '../../models/todo.model';
+import { TodoValidationService } from '../../services/todo-validation.service';
 
 /**
  * Standalone form component for creating new todo items.
@@ -42,6 +43,9 @@ export class AddTodoFormComponent {
   /** Injected FormBuilder service for creating reactive forms */
   private fb = inject(FormBuilder);
   
+  /** Injected validation service for centralized validation logic */
+  private validationService = inject(TodoValidationService);
+  
   /** Event emitted when the form is submitted with valid data */
   formSubmit = output<CreateTodoRequest>();
   
@@ -57,14 +61,21 @@ export class AddTodoFormComponent {
   
   /** 
    * Reactive form group with validation rules for todo creation.
-   * @description Defines form controls with validators for title (required),
-   * description (optional), priority (defaults to medium), and due date (must be future).
+   * @description Defines form controls with validators from TodoValidationService,
+   * providing centralized validation logic and consistent error handling.
    */
   todoForm = this.fb.group({
-    title: ['', [Validators.required]],
-    description: [''],
+    title: ['', [
+      Validators.required, 
+      this.validationService.titleValidator()
+    ]],
+    description: ['', [
+      this.validationService.descriptionValidator()
+    ]],
     priority: ['medium'],
-    dueDate: ['', [this.futureDateValidator]],
+    dueDate: ['', [
+      this.validationService.dueDateValidator()
+    ]],
     tags: this.fb.array([])
   });
 
@@ -77,33 +88,6 @@ export class AddTodoFormComponent {
   /** Signal for tag validation error messages */
   tagError = signal<string>('');
 
-  /** Maximum tag length allowed */
-  private readonly MAX_TAG_LENGTH = 50;
-
-  /** Maximum number of tags allowed */
-  private readonly MAX_TAGS_COUNT = 10;
-
-  /**
-   * Custom validator ensuring due dates are not in the past.
-   * @param control - The form control containing the date value
-   * @returns Validation error object if date is in the past, null if valid
-   */
-  private futureDateValidator(control: AbstractControl): ValidationErrors | null {
-    if (!control.value) {
-      return null;
-    }
-
-    // Compare date strings directly to avoid timezone issues
-    const inputDateString = control.value; // Format: YYYY-MM-DD
-    const today = new Date();
-    const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-
-    if (inputDateString < todayString) {
-      return { pastDate: true };
-    }
-
-    return null;
-  }
 
   /**
    * Validates and ensures priority value is within allowed options.
@@ -124,42 +108,22 @@ export class AddTodoFormComponent {
   }
 
   /**
-   * Adds a new tag to the tags array.
-   * @description Validates the tag input, checks for duplicates, length limits,
-   * and maximum tag count before adding to the form array.
+   * Adds a new tag to the tags array using centralized validation.
+   * @description Uses TodoValidationService to validate tag input with
+   * consistent business rules and error messaging.
    */
   addTag(): void {
     const tagValue = this.currentTagInput().trim();
+    const currentTags = this.tagsArray.value;
     
     // Clear previous error
     this.tagError.set('');
     
-    // Validate tag input
-    if (!tagValue || tagValue.length === 0) {
-      this.tagError.set('Tag cannot be empty');
-      return;
-    }
-
-    // Check tag length limit
-    if (tagValue.length > this.MAX_TAG_LENGTH) {
-      this.tagError.set(`Tag cannot exceed ${this.MAX_TAG_LENGTH} characters`);
-      return;
-    }
-
-    // Check maximum tags count
-    if (this.tagsArray.length >= this.MAX_TAGS_COUNT) {
-      this.tagError.set(`Maximum ${this.MAX_TAGS_COUNT} tags allowed`);
-      return;
-    }
-
-    // Check for duplicates (case insensitive)
-    const currentTags = this.tagsArray.value;
-    const isDuplicate = currentTags.some((tag: string) => 
-      tag.toLowerCase() === tagValue.toLowerCase()
-    );
-
-    if (isDuplicate) {
-      this.tagError.set('Tag already exists');
+    // Use validation service for centralized tag validation
+    const validationResult = this.validationService.validateNewTag(tagValue, currentTags);
+    
+    if (!validationResult.valid) {
+      this.tagError.set(validationResult.error || 'Invalid tag');
       return;
     }
 

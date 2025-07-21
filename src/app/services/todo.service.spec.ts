@@ -592,11 +592,15 @@ describe('TodoService', () => {
     });
 
     it('should handle all optional fields', () => {
+      // Use a future date to ensure validation passes
+      const futureDate = new Date();
+      futureDate.setFullYear(futureDate.getFullYear() + 1);
+      
       const request: CreateTodoRequest = {
         title: 'Complete Todo',
         description: 'A complete description',
         priority: 'high',
-        dueDate: new Date('2024-12-31'),
+        dueDate: futureDate,
         tags: ['work', 'important']
       };
 

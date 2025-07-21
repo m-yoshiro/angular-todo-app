@@ -47,11 +47,17 @@ Based on expert software architecture review:
 - `npm run watch` - Build in watch mode
 
 **Testing (TDD-Focused):**
-- `npm run test:watch` - **PRIMARY**: Run tests in watch mode for TDD cycles
-- `npm test` - Run unit tests with Vitest
-- `npm run test:coverage` - Run tests with coverage report
-- Tests use Vitest framework with Angular Testing Utilities
-- **TDD Workflow**: Keep `test:watch` running during development
+- `npm run test:watch` – **PRIMARY**: Runs `ng test --watch` for continuous TDD cycles
+- `npm test` – Executes unit tests via `ng test` (Vitest under the hood)
+  - **Targeted execution** (append flags after `--`):
+    - **File / glob filter**:
+      `npm test -- --include src/app/services/todo.service.spec.ts`
+      `npm test -- --include "src/app/**/todo-*.spec.ts"`
+    - **Test name pattern**:
+      `npm test -- --testNamePattern="TodoService"`
+- `npm run test:coverage` – Runs `ng test --code-coverage` and generates a coverage report
+- Tests use Vitest with Angular Testing Utilities
+- **TDD Workflow**: Keep `npm run test:watch` running during development
 
 **E2E Testing (Playwright + MCP):**
 - `npm run e2e` - **PRIMARY**: Run E2E tests with Playwright (Chrome only, fast)
@@ -74,11 +80,13 @@ Based on expert software architecture review:
 - **Debugging**: Enhanced debugging with MCP browser inspection tools
 
 **Test Command Rules (CRITICAL):**
-- ⚠️ **NEVER add extra options** like `-- run`, `-- ci`, or other flags to test commands
-- ✅ **Use EXACT commands**: `npm test`, `npm run test:watch`, `npm run test:coverage`
-- ❌ **DO NOT use**: `npm test -- run`, `npm run test:watch -- run`, etc.
-- This Angular + Vitest setup requires the exact npm scripts as defined in package.json
-- Adding extra options will cause test failures
+- ⚠️ **Only use officially supported flags**: `--include`, `--testNamePattern`, `--watch`, `--code-coverage`, etc.
+- ✅ **Canonical commands**: `npm test`, `npm run test:watch`, `npm run test:coverage`
+- ✅ **Filtering examples**:
+  - Single file: `npm test -- --include src/app/foo/bar.spec.ts`
+  - Regex name: `npm test -- --testNamePattern "MyComponent"`
+- ❌ Do **NOT** add unknown or unofficial flags (e.g., `-- run`, `--ci`).
+- **Rationale**: prevents unnecessary test execution and keeps the AI context window lean.
 
 **Code Quality:**
 - `npm run lint` - Run ESLint for TypeScript and HTML files
@@ -102,7 +110,7 @@ This is an **Angular 20 TODO application** showcasing modern Angular patterns:
 
 ### Key Angular 20 Features Used
 - **Standalone Components** (no NgModules)
-- **Signals** for reactive state management 
+- **Signals** for reactive state management
 - **Zoneless Change Detection** (experimental)
 - **New Control Flow Syntax** (`@for`, `@if`, `@switch`)
 - **SSR with Incremental Hydration** (experimental)
@@ -167,7 +175,7 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 - **Issue Tracking**: Link commits to issues, update status, manage labels
 - **Code Review**: Automated review requests and approval workflows
 
-### Playwright MCP Integration  
+### Playwright MCP Integration
 - **Browser Automation**: Direct browser control for E2E testing
 - **Interactive Testing**: Real-time browser interaction during development
 - **Visual Testing**: Screenshot comparison and visual regression testing
@@ -181,7 +189,7 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 // - Automatically link commits to issues
 // - Manage review workflows programmatically
 
-// Playwright MCP Examples  
+// Playwright MCP Examples
 // - Interactive browser testing during development
 // - Automated visual regression testing
 // - Performance monitoring integration
@@ -259,7 +267,7 @@ This project leverages Claude Code's **Model Context Protocol (MCP)** tools for 
 - ✅ ESLint setup completed: Code quality tools configured
 - ⚠️ **ARCHITECTURAL DEBT**: TodoListComponent violates Single Responsibility Principle
 - 🔄 Ready for Phase 3: Advanced features (filtering, persistence, signal forms)
-- 🎯 **TDD Success**: Phase 2 achieved 100% test coverage with comprehensive TDD implementation
+- 🎯 **TDD Success**: Phase 2 achieved 90% test coverage with comprehensive TDD implementation
 
 ### Immediate Architecture Improvements Needed
 1. **Refactor TodoListComponent**: Move business logic to TodoService
@@ -299,17 +307,17 @@ describe('TodoService', () => {
     // Red: Test fails initially
     const service = new TodoService();
     const invalidRequest = { title: '', completed: false };
-    
+
     expect(() => service.addTodo(invalidRequest)).toThrow('Title is required');
   });
-  
+
   it('should handle confirmation for todo deletion', () => {
     // Red: Test confirmation logic
     const service = new TodoService();
     const confirmationService = jasmine.createSpyObj('ConfirmationService', ['confirm']);
-    
+
     service.deleteTodo('123', confirmationService);
-    
+
     expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
   });
 });
@@ -321,22 +329,22 @@ describe('TodoListComponent', () => {
     const fixture = TestBed.createComponent(TodoListComponent);
     const component = fixture.componentInstance;
     spyOn(component, 'onAddTodo');
-    
+
     const formData = { title: 'Test Todo', completed: false };
     component.onAddTodo(formData);
-    
+
     expect(component.onAddTodo).toHaveBeenCalledWith(formData);
   });
-  
+
   it('should display todos from service', () => {
     // Red: Test presentation logic
     const mockTodos = [{ id: '1', title: 'Test', completed: false }];
     const todoService = jasmine.createSpyObj('TodoService', [], { todos: signal(mockTodos) });
-    
+
     const fixture = TestBed.createComponent(TodoListComponent);
     fixture.componentInstance.todoService = todoService;
     fixture.detectChanges();
-    
+
     expect(fixture.nativeElement.textContent).toContain('Test');
   });
 });
@@ -425,18 +433,17 @@ interface Todo {
 - ✅ PR #4: Todo Item Component (completed with comprehensive tests)
 - ✅ PR #5: Add Todo Form Component (completed - broken into sub-issues #16-19)
   - ✅ Issue #16: Basic Form Structure and Validation
-  - ✅ Issue #17: Priority and Due Date Fields  
+  - ✅ Issue #17: Priority and Due Date Fields
   - ✅ Issue #18: Tag Management System
   - ✅ Issue #19: Form Integration and Events
 - ✅ PR #6: Component Integration (ready for implementation)
 
 **Now Ready for Phase 3 (Week 3)** - Advanced features using **proven TDD approach**:
 - PR #7: Todo Filtering & Statistics
-- PR #8: Local Storage Persistence  
+- PR #8: Local Storage Persistence
 - PR #9: Signal-based Forms (Experimental)
-
 ### TDD Development Success from Phase 2
-- **Achieved 100% test coverage** with 923 comprehensive test cases
+- **achieved 90% test coverage** with 923 comprehensive test cases
 - **Perfect Red-Green-Refactor cycles** for each component feature
 - **Advanced signal testing patterns** successfully implemented
 - **Production-ready component architecture** with Angular 20 patterns
