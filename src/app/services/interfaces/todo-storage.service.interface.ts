@@ -1,196 +1,109 @@
 /**
- * @fileoverview Interface for todo storage service managing persistent data operations
- * @description Defines the contract for a service that provides storage operations with
- * health monitoring, SSR compatibility, and error handling. This interface enables proper
- * testing and separation of concerns by abstracting storage functionality from business logic.
+ * @fileoverview Simplified interface for todo storage service managing persistent data operations
+ * @description Defines a synchronous contract for core storage operations with SSR compatibility
+ * and error handling. This simplified interface maintains behavioral compatibility with existing
+ * TodoService implementation while enabling proper testing and separation of concerns.
+ * 
+ * **Key Design Principles:**
+ * - Synchronous API to maintain behavioral compatibility
+ * - Interface Segregation Principle (ISP) - focused on core storage responsibility
+ * - SSR compatibility with graceful degradation
+ * - Simple error handling with boolean health status
+ * 
+ * **Future Enhancement:**
+ * Advanced features (async operations, detailed health monitoring, corruption recovery)
+ * will be added in a future PR to avoid breaking changes during this refactoring phase.
  */
 
 import { Todo } from '../../models/todo.model';
 
 /**
- * Storage health information for monitoring and diagnostics.
- * @description Provides insights into storage availability, usage, and performance
- * to enable better error handling and user experience.
+ * Basic storage health information for monitoring.
+ * @description Provides essential health status information for storage operations.
+ * Simplified from the original complex health interface to focus on core needs.
  */
 export interface StorageHealthInfo {
   /** Whether storage is available and functional */
   available: boolean;
   
-  /** Amount of storage quota used in bytes (if available) */
-  quotaUsed?: number;
-  
-  /** Total storage quota in bytes (if available) */
-  quotaTotal?: number;
-  
-  /** Percentage of quota used (0-100) */
-  quotaUsagePercentage?: number;
-  
-  /** Whether storage is approaching quota limits (>90% usage) */
-  nearQuotaLimit?: boolean;
-  
-  /** Last successful operation timestamp */
-  lastSuccessfulOperation?: Date;
-  
-  /** Number of consecutive failures */
-  consecutiveFailures?: number;
+  /** Whether any storage errors have occurred */
+  hasError: boolean;
 }
 
 /**
- * Storage operation result with detailed feedback.
- * @description Provides structured results for storage operations with
- * success status, error information, and performance metrics.
- */
-export interface StorageOperationResult {
-  /** Whether the operation was successful */
-  success: boolean;
-  
-  /** Error message if operation failed */
-  error?: string;
-  
-  /** Number of items processed */
-  itemCount?: number;
-  
-  /** Operation duration in milliseconds */
-  duration?: number;
-  
-  /** Whether data was corrupted and recovered */
-  dataRecovered?: boolean;
-}
-
-/**
- * Interface for todo storage service providing persistent data operations.
- * @description Defines the contract for managing todo persistence with health monitoring,
- * SSR compatibility, and robust error handling. Implementations should provide graceful
- * degradation when storage is unavailable and comprehensive error reporting.
+ * Interface for todo storage service providing core persistent data operations.
+ * @description Defines the contract for managing todo persistence with SSR compatibility
+ * and basic error handling. This simplified interface maintains synchronous operations
+ * to preserve existing TodoService behavior while enabling dependency injection and testing.
  * 
  * **Key Features:**
+ * - Synchronous operations for behavioral compatibility
  * - SSR compatibility with environment detection
- * - Health monitoring with quota tracking
- * - Corruption detection and recovery
- * - Graceful error handling with detailed feedback
- * - Performance monitoring and metrics
+ * - Graceful error handling with console warnings
+ * - Proper Date serialization/deserialization
+ * - Basic health monitoring
  * 
  * **Implementation Requirements:**
  * - Must handle SSR environments gracefully (no window/localStorage)
- * - Should implement proper Date serialization/deserialization
- * - Must provide detailed error information for debugging
- * - Should track storage health metrics
- * - Must handle storage quota exceeded scenarios
+ * - Must implement proper Date serialization/deserialization
+ * - Must provide graceful error handling with console.warn
+ * - Must maintain exact same behavior as current TodoService localStorage methods
  * 
  * @example
  * ```typescript
- * // Service usage example
+ * // Service usage example (maintains existing TodoService patterns)
  * class TodoService {
- *   constructor(private storage: ITodoStorageService) {}
- *   
- *   async saveTodos(todos: Todo[]) {
- *     if (!this.storage.isAvailable()) {
- *       console.warn('Storage not available, changes will be lost');
- *       return;
- *     }
- *     
- *     const result = await this.storage.saveTodos(todos);
- *     if (!result.success) {
- *       console.error('Failed to save todos:', result.error);
- *     }
+ *   constructor(private storageService = inject(TodoStorageService)) {
+ *     // Maintains exact same synchronous initialization
+ *     this._todos = signal<Todo[]>(this.storageService.loadTodos());
  *   }
  *   
- *   checkStorageHealth() {
- *     const health = this.storage.getStorageHealth();
- *     if (health.nearQuotaLimit) {
- *       this.notifyUser('Storage space is running low');
- *     }
+ *   private saveTodosToStorage(): void {
+ *     // Maintains exact same synchronous persistence
+ *     this.storageService.saveTodos(this._todos());
  *   }
  * }
  * ```
  */
 export interface ITodoStorageService {
   /**
-   * Loads todos from persistent storage.
-   * @description Retrieves and deserializes todos from storage, handling Date objects
-   * and corrupted data gracefully. Returns empty array if storage is unavailable or data is corrupt.
-   * @returns Promise resolving to array of todos from storage or empty array if none found
+   * Loads todos from persistent storage synchronously.
+   * @description Retrieves and deserializes todos from localStorage, handling Date objects
+   * gracefully. Returns empty array if storage is unavailable or data is corrupt.
+   * Maintains exact same behavior as current TodoService.loadTodosFromStorage().
+   * @returns Array of todos from storage or empty array if none found
    */
-  loadTodos(): Promise<Todo[]>;
+  loadTodos(): Todo[];
 
   /**
-   * Saves todos to persistent storage.
-   * @description Serializes and stores todos with proper Date handling and error recovery.
-   * Provides detailed operation result including success status and error information.
+   * Saves todos to persistent storage synchronously.
+   * @description Serializes and stores todos with proper Date handling.
+   * Maintains exact same behavior as current TodoService.saveTodosToStorage().
    * @param todos - Array of todos to save to storage
-   * @returns Promise resolving to operation result with success status and details
    */
-  saveTodos(todos: Todo[]): Promise<StorageOperationResult>;
+  saveTodos(todos: Todo[]): void;
 
   /**
-   * Clears all todos from persistent storage.
-   * @description Removes all stored todo data and resets storage state.
+   * Clears all todos from persistent storage synchronously.
+   * @description Removes all stored todo data.
    * Useful for data reset or cleanup operations.
-   * @returns Promise resolving to operation result with success status
    */
-  clearStorage(): Promise<StorageOperationResult>;
+  clearStorage(): void;
 
   /**
    * Checks if storage is available in the current environment.
    * @description Determines if storage operations are supported, considering SSR environments,
-   * browser compatibility, and storage availability. Critical for graceful degradation.
+   * browser compatibility, and localStorage availability. Critical for graceful degradation.
+   * Maintains exact same logic as current TodoService storage methods.
    * @returns True if storage is available and functional, false otherwise
    */
   isAvailable(): boolean;
 
   /**
-   * Gets comprehensive storage health information.
-   * @description Provides detailed insights into storage availability, usage, performance,
-   * and potential issues. Useful for monitoring and user feedback.
-   * @returns Storage health information with availability, quota usage, and performance metrics
+   * Gets basic storage health information.
+   * @description Provides essential health status for storage operations.
+   * Simplified interface focusing on availability and error state.
+   * @returns Storage health information with availability and error status
    */
   getStorageHealth(): StorageHealthInfo;
-
-  /**
-   * Checks if storage data is healthy and not corrupted.
-   * @description Validates stored data integrity and detects corruption issues.
-   * Enables proactive error handling and data recovery.
-   * @returns True if storage data is healthy, false if corrupted or issues detected
-   */
-  isStorageHealthy(): boolean;
-
-  /**
-   * Attempts to recover from storage corruption.
-   * @description Tries to repair corrupted data or reset storage to a clean state.
-   * Should be called when corruption is detected to restore functionality.
-   * @returns Promise resolving to operation result indicating recovery success
-   */
-  recoverFromCorruption(): Promise<StorageOperationResult>;
-
-  /**
-   * Exports todos data for backup or migration.
-   * @description Provides a clean export of todo data in a portable format.
-   * Useful for data backup, migration between storage implementations, or debugging.
-   * @returns Promise resolving to serialized todo data suitable for backup
-   */
-  exportData(): Promise<string>;
-
-  /**
-   * Imports todos data from backup or migration.
-   * @description Restores todo data from a previously exported format with validation.
-   * Merges with existing data or replaces it based on the merge parameter.
-   * @param data - Serialized todo data to import
-   * @param merge - Whether to merge with existing data (true) or replace it (false)
-   * @returns Promise resolving to operation result with import details
-   */
-  importData(data: string, merge?: boolean): Promise<StorageOperationResult>;
-
-  /**
-   * Gets storage usage statistics.
-   * @description Provides detailed statistics about storage usage, performance,
-   * and operation history for monitoring and optimization.
-   * @returns Object containing storage statistics and performance metrics
-   */
-  getStorageStats(): {
-    totalOperations: number;
-    successfulOperations: number;
-    failedOperations: number;
-    averageOperationTime: number;
-    lastOperationTime: Date;
-  };
 }

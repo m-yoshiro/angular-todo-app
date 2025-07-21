@@ -13,8 +13,7 @@ export type {
 // Todo Storage Service Interface
 export type {
   ITodoStorageService,
-  StorageHealthInfo,
-  StorageOperationResult
+  StorageHealthInfo
 } from './todo-storage.service.interface';
 
 // Todo Validation Service Interfaces (focused interfaces)
