@@ -238,16 +238,26 @@ export class TodoValidationService implements ITodoValidationService {
     const errors: ValidationError[] = [];
 
     if (dueDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const inputDate = new Date(dueDate);
-      inputDate.setHours(0, 0, 0, 0);
+      const todayString = this.toDateString(new Date());
+      const inputDateString = this.toDateString(dueDate);
 
-      if (inputDate < today) {
+      // Only perform comparison if both dates are valid
+      if (todayString && inputDateString) {
+        if (inputDateString < todayString) {
+          errors.push({
+            field: 'dueDate',
+            message: VALIDATION_MESSAGES.DATE.PAST_DATE,
+            code: 'DUE_DATE_PAST',
+            severity: 'error',
+            value: dueDate
+          });
+        }
+      } else if (!inputDateString) {
+        // Invalid date input - add validation error
         errors.push({
           field: 'dueDate',
-          message: VALIDATION_MESSAGES.DATE.PAST_DATE,
-          code: 'DUE_DATE_PAST',
+          message: 'Invalid date format',
+          code: 'DUE_DATE_INVALID',
           severity: 'error',
           value: dueDate
         });
@@ -255,6 +265,60 @@ export class TodoValidationService implements ITodoValidationService {
     }
 
     return this.createValidationResult(errors);
+  }
+
+  /**
+   * Converts a Date object or date string to a timezone-neutral YYYY-MM-DD string.
+   * @description This helper method ensures consistent date comparison across different
+   * timezones by converting all dates to a standardized string format for comparison.
+   * Handles edge cases like invalid dates, null/undefined inputs gracefully.
+   * @param input - Date object, date string, or falsy value
+   * @returns YYYY-MM-DD string for valid dates, null for invalid/falsy inputs
+   */
+  private toDateString(input: Date | string | null | undefined): string | null {
+    // Handle falsy inputs
+    if (!input) {
+      return null;
+    }
+
+    try {
+      let date: Date;
+
+      if (typeof input === 'string') {
+        // Handle date strings - parse as local date to avoid timezone issues
+        const parts = input.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (parts) {
+          // Create date in local timezone (year, month-1, day)
+          date = new Date(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]));
+        } else {
+          // Try parsing as-is for other formats, but this may have timezone issues
+          date = new Date(input);
+        }
+      } else {
+        // Handle Date objects
+        date = input;
+      }
+
+      // Validate the resulting date
+      if (isNaN(date.getTime())) {
+        if (typeof window !== 'undefined' && console && console.warn) {
+          console.warn('TodoValidationService: Invalid date input received:', input);
+        }
+        return null;
+      }
+
+      // Format as YYYY-MM-DD using local timezone
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      if (typeof window !== 'undefined' && console && console.warn) {
+        console.warn('TodoValidationService: Error parsing date:', input, error);
+      }
+      return null;
+    }
   }
 
   validateTodoTags(tags?: string[], config?: ValidationConfig): ValidationResult {
@@ -645,6 +709,9 @@ export class TodoValidationService implements ITodoValidationService {
         switch (error.code) {
           case 'DUE_DATE_PAST':
             errorKey = 'pastDate';
+            break;
+          case 'DUE_DATE_INVALID':
+            errorKey = 'invalidDate';
             break;
           case 'TITLE_REQUIRED':
             errorKey = 'required';

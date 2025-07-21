@@ -314,11 +314,11 @@ describe('TodoService', () => {
   it('should handle confirmation for todo deletion', () => {
     // Red: Test confirmation logic
     const service = new TodoService();
-    const confirmationService = jasmine.createSpyObj('ConfirmationService', ['confirm']);
+    const confirmationService = vi.fn().mockReturnValue(true);
 
     service.deleteTodo('123', confirmationService);
 
-    expect(confirmationService.confirm).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
+    expect(confirmationService).toHaveBeenCalledWith('Are you sure you want to delete this todo?');
   });
 });
 
@@ -328,21 +328,23 @@ describe('TodoListComponent', () => {
     // Red: Write test first
     const fixture = TestBed.createComponent(TodoListComponent);
     const component = fixture.componentInstance;
-    spyOn(component, 'onAddTodo');
+    const onAddTodoSpy = vi.spyOn(component, 'onAddTodo');
 
     const formData = { title: 'Test Todo', completed: false };
     component.onAddTodo(formData);
 
-    expect(component.onAddTodo).toHaveBeenCalledWith(formData);
+    expect(onAddTodoSpy).toHaveBeenCalledWith(formData);
   });
 
   it('should display todos from service', () => {
     // Red: Test presentation logic
     const mockTodos = [{ id: '1', title: 'Test', completed: false }];
-    const todoService = jasmine.createSpyObj('TodoService', [], { todos: signal(mockTodos) });
+    const mockTodoService = {
+      todos: signal(mockTodos)
+    };
 
     const fixture = TestBed.createComponent(TodoListComponent);
-    fixture.componentInstance.todoService = todoService;
+    fixture.componentInstance.todoService = mockTodoService;
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Test');
