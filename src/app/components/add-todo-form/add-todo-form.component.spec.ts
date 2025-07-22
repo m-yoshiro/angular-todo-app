@@ -155,7 +155,11 @@ describe('AddTodoFormComponent', () => {
 
       it('should be valid when due date is today', () => {
         const today = new Date();
-        const todayString = today.toISOString().split('T')[0];
+        // Use local date formatting to get today's date in the current timezone
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayString = `${year}-${month}-${day}`;
         
         component.todoForm.get('title')?.setValue('Test Todo');
         component.todoForm.get('dueDate')?.setValue(todayString);

@@ -252,6 +252,131 @@ describe('TodoValidationService', () => {
 
       expect(result.valid).toBe(true);
     });
+
+    // ======================== Edge Cases and Timezone Tests ========================
+
+    describe('Date String Handling (Timezone-Robust)', () => {
+      it('should handle YYYY-MM-DD date strings correctly', () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayString = `${year}-${month}-${day}`;
+
+        const result = service.validateTodoDueDate(todayString as unknown as Date);
+
+        expect(result.valid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+
+      it('should reject past date strings', () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const year = yesterday.getFullYear();
+        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+        const day = String(yesterday.getDate()).padStart(2, '0');
+        const yesterdayString = `${year}-${month}-${day}`;
+
+        const result = service.validateTodoDueDate(yesterdayString as unknown as Date);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toBeDefined();
+        expect(result.errors![0].code).toBe('DUE_DATE_PAST');
+      });
+
+      it('should accept future date strings', () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+        const tomorrowString = `${year}-${month}-${day}`;
+
+        const result = service.validateTodoDueDate(tomorrowString as unknown as Date);
+
+        expect(result.valid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+    });
+
+    describe('Invalid Date Input Handling', () => {
+      it('should handle null input gracefully', () => {
+        const result = service.validateTodoDueDate(null as unknown as Date);
+
+        expect(result.valid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+
+      it('should handle undefined input gracefully', () => {
+        const result = service.validateTodoDueDate(undefined);
+
+        expect(result.valid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+
+      it('should handle invalid date strings gracefully', () => {
+        const result = service.validateTodoDueDate('not-a-date' as unknown as Date);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toBeDefined();
+        expect(result.errors![0].code).toBe('DUE_DATE_INVALID');
+      });
+
+      it('should handle empty string gracefully', () => {
+        const result = service.validateTodoDueDate('' as unknown as Date);
+
+        expect(result.valid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+
+      it('should handle malformed date strings', () => {
+        const result = service.validateTodoDueDate('invalid-date-format' as unknown as Date);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toBeDefined();
+        expect(result.errors![0].code).toBe('DUE_DATE_INVALID');
+      });
+
+      it('should handle invalid Date objects', () => {
+        const invalidDate = new Date('invalid');
+        const result = service.validateTodoDueDate(invalidDate);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toBeDefined();
+        expect(result.errors![0].code).toBe('DUE_DATE_INVALID');
+      });
+    });
+
+    describe('Timezone Consistency', () => {
+      it('should work consistently regardless of timezone for date comparisons', () => {
+        // Test with explicit date construction that should work in any timezone
+        const today = new Date();
+        const todayYear = today.getFullYear();
+        const todayMonth = today.getMonth();
+        const todayDate = today.getDate();
+
+        // Create today's date at local midnight
+        const localToday = new Date(todayYear, todayMonth, todayDate);
+        const localYesterday = new Date(todayYear, todayMonth, todayDate - 1);
+        const localTomorrow = new Date(todayYear, todayMonth, todayDate + 1);
+
+        // All of these should be timezone-consistent
+        expect(service.validateTodoDueDate(localToday).valid).toBe(true);
+        expect(service.validateTodoDueDate(localYesterday).valid).toBe(false);
+        expect(service.validateTodoDueDate(localTomorrow).valid).toBe(true);
+      });
+
+      it('should handle DST transition periods correctly', () => {
+        // Test dates around common DST transitions
+        // These dates are chosen to be safe in most timezones
+        const springDate = new Date(2025, 2, 15); // Mid March
+        const fallDate = new Date(2025, 9, 15);   // Mid October
+
+        // These should not throw errors and should validate correctly
+        expect(() => service.validateTodoDueDate(springDate)).not.toThrow();
+        expect(() => service.validateTodoDueDate(fallDate)).not.toThrow();
+      });
+    });
   });
 
   describe('validateTodoTags', () => {

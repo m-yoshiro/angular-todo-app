@@ -84,6 +84,7 @@ export interface TodoValidationErrors extends ValidationErrors {
   tagDuplicate?: boolean;
   tagMaxCount?: { requiredCount: number; actualCount: number };
   pastDate?: boolean;
+  invalidDate?: boolean;
   invalidPriority?: { allowedValues: readonly string[]; actualValue: string };
 }
 
