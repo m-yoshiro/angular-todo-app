@@ -439,9 +439,10 @@ describe('TodoService', () => {
       it('should handle default case in filteredTodos switch statement', () => {
         service.addTodo({ title: 'Test Todo' });
         
-        // Force an invalid filter state (though this shouldn't happen in normal use)
+        // Test that invalid filter defaults to showing all todos
+        // Cast to bypass TypeScript checking for testing purposes
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (service as any)._currentFilter.set('invalid');
+        service.setFilter('invalid' as any);
         
         const filtered = service.filteredTodos();
         expect(filtered).toEqual(service.todos());
