@@ -121,3 +121,10 @@ export interface SortConfig {
   key: SortType;
   order: SortOrder;
 }
+
+/**
+ * Priority value mapping for consistent priority sorting across the application.
+ * @description Provides numeric values for priority levels to enable proper sorting logic.
+ * Used by sorting services to maintain consistent priority ordering.
+ */
+export const PRIORITY_VALUES = { low: 1, medium: 2, high: 3 } as const;
