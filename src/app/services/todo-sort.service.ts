@@ -6,7 +6,7 @@
  */
 
 import { Injectable, signal, computed, Signal } from '@angular/core';
-import { Todo, SortType, SortOrder } from '../models/todo.model';
+import { Todo, SortType, SortOrder, PRIORITY_VALUES } from '../models/todo.model';
 
 /**
  * Service responsible for managing sort state and providing reactive sorting logic.
@@ -40,9 +40,6 @@ import { Todo, SortType, SortOrder } from '../models/todo.model';
   providedIn: 'root'
 })
 export class TodoSortService {
-  
-  /** Priority values for consistent priority sorting */
-  private readonly PRIORITY_VALUES = { low: 1, medium: 2, high: 3 } as const;
   
   /** Private signal for the current sort key */
   private _sortKey = signal<SortType>('date');
@@ -115,7 +112,7 @@ export class TodoSortService {
           comparison = a.createdAt.getTime() - b.createdAt.getTime();
           break;
         case 'priority':
-          comparison = this.PRIORITY_VALUES[a.priority] - this.PRIORITY_VALUES[b.priority];
+          comparison = PRIORITY_VALUES[a.priority] - PRIORITY_VALUES[b.priority];
           break;
         case 'title':
           comparison = a.title.localeCompare(b.title);

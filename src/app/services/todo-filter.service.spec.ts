@@ -5,6 +5,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { signal } from '@angular/core';
+import { vi } from 'vitest';
 import { TodoFilterService } from './todo-filter.service';
 import { Todo, FilterType } from '../models/todo.model';
 
@@ -257,6 +258,34 @@ describe('TodoFilterService', () => {
       
       const filtered = service.getFilteredTodos(todosSignal)();
       expect(filtered).toEqual(mockTodos);
+      expect(service.currentFilter()).toBe('all');
+    });
+
+    it('should log warning for invalid filter type', () => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      // Cast to bypass TypeScript checking for testing purposes
+      service.setFilter('invalid' as FilterType);
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Invalid filter type 'invalid'. Defaulting to 'all'. Valid options are: all, active, completed"
+      );
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should not log warning for valid filter types', () => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      service.setFilter('active');
+      service.setFilter('completed');
+      service.setFilter('all');
+      
+      expect(consoleSpy).not.toHaveBeenCalled();
+      
+      consoleSpy.mockRestore();
     });
 
     it('should maintain filter state across multiple getFilteredTodos calls', () => {

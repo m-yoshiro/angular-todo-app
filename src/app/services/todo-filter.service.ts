@@ -48,8 +48,18 @@ export class TodoFilterService {
   /**
    * Sets the current filter for displaying todos.
    * @param filter - The filter type to apply ('all', 'active', 'completed')
+   * @description Validates the filter type and logs a warning for invalid types
+   * before defaulting to 'all' to maintain application stability.
    */
   setFilter(filter: FilterType): void {
+    const validFilters: FilterType[] = ['all', 'active', 'completed'];
+    
+    if (!validFilters.includes(filter)) {
+      console.warn(`Invalid filter type '${filter}'. Defaulting to 'all'. Valid options are: ${validFilters.join(', ')}`);
+      this._currentFilter.set('all');
+      return;
+    }
+    
     this._currentFilter.set(filter);
   }
 

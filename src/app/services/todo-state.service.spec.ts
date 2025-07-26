@@ -386,7 +386,8 @@ describe('TodoStateService', () => {
       service.addTodo({ title: 'Test Todo' });
       
       // Storage should be called asynchronously via effect
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Need longer delay for the effect with setTimeout(0) to execute
+      await new Promise(resolve => setTimeout(resolve, 50));
       expect(mockStorageService.saveTodos).toHaveBeenCalled();
     });
   });
